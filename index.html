@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -413,7 +413,48 @@
         }
 
         function preprocessPDFText(text) {
-            return text.split('\n').map(line => line.trim()).filter(line => line).join('\n');
+            let rawLines = text.split('\n');
+            const processedLines = [];
+            let buffer = "";
+
+            rawLines.forEach(line => {
+                let current = line.trim();
+                if (!current) return;
+
+                // URL 라인은 전처리 단계에서도 결합이나 간섭 없이 완벽히 격리 독립 라인 보존
+                const isUrl = current.includes('http://') || current.includes('https://') || current.includes('BGM') || current.includes('bgm') || current.includes('브금');
+                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
+                                  current.includes('핸드아웃') || current.includes('비밀번호') || current.includes('Handout');
+
+                if (isSpecial || isUrl) {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
+                    processedLines.push(current);
+                    return;
+                }
+
+                if (buffer) {
+                    const lastChar = buffer.slice(-1);
+                    const isSentenceEnd = /[.!??”’)\]지역｣』。．]$/.test(lastChar);
+
+                    if (!isSentenceEnd) {
+                        buffer += current;
+                    } else {
+                        processedLines.push(buffer.trim());
+                        buffer = current;
+                    }
+                } else {
+                    buffer = current;
+                }
+            });
+
+            if (buffer) {
+                processedLines.push(buffer.trim());
+            }
+
+            return processedLines.join('\n');
         }
 
         document.getElementById('clearBtn').addEventListener('click', function() {
@@ -435,6 +476,7 @@
             let restoredText = preprocessPDFText(rawScript);
             const intermediateLines = [];
             
+            // ⭐ [초강력 철벽 보호] URL 및 브금 주소 완벽 토큰화 보호 레이어
             const urlStorage = [];
             const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
             
@@ -446,7 +488,7 @@
 
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 글자 순회 기반의 무오류 텍스트 분할 알고리즘
+            // 1단계: 문장 단위 정밀 분할 레이어 (치환된 토큰 상태로 진행되므로 마침표 오작동 원천 차단)
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -476,47 +518,9 @@
                         });
                     });
 
-                    // 🛠️ [브라우저 완전 호환 루프 가동] 안전한 문자열 순회형 분리기법
-                    let sentences = [];
-                    let currentChunk = "";
-                    const splitMarkers = ['.', '?', '!', '。', '．', '~', '～', '”', '’', ']', ')', '｣', '』'];
+                    // 마침표 뒤에 공백이 있거나 아예 문장이 끝날 때만 분할 처리
+                    const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)(\s+|$)/g);
 
-                    for (let idx = 0; idx < protectedText.length; idx++) {
-                        let char = protectedText[idx];
-                        currentChunk += char;
-
-                        // 마침표류 기호를 만나면 자를 준비를 함
-                        if (splitMarkers.includes(char)) {
-                            // 단, 말줄임표(...) 기호는 쪼개지 않도록 연속성 검사 진행
-                            let isEllipsis = false;
-                            
-                            // 1. 뒤에 마침표가 더 오는가? (예: .이 뒤에 연속으로 붙어오는가)
-                            if (char === '.' && idx + 1 < protectedText.length && protectedText[idx + 1] === '.') {
-                                isEllipsis = true;
-                            }
-                            // 2. 앞에 마침표가 있었는가? (예: 이미 마침표 연속 도중인가)
-                            if (char === '.' && idx - 1 >= 0 && protectedText[idx - 1] === '.') {
-                                isEllipsis = true;
-                            }
-                            // 3. 특수 말줄임 기호(…, ⋯)의 연속 여부 확인
-                            if ((char === '…' || char === '⋯')) {
-                                isEllipsis = true;
-                            }
-
-                            // 말줄임표가 아닌 순수 단독 마침표 세트라면 그 자리에서 문장 싹둑 분리
-                            if (!isEllipsis) {
-                                if (currentChunk.trim()) {
-                                    sentences.push(currentChunk.trim());
-                                }
-                                currentChunk = "";
-                            }
-                        }
-                    }
-                    if (currentChunk.trim()) {
-                        sentences.push(currentChunk.trim());
-                    }
-
-                    // 콤마 처리 및 최종 마크다운 가공 레이어
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
@@ -543,8 +547,7 @@
                             i++;
                         }
 
-                        const subParts = currentSentence.split(/[\s]+/);
-                        let finalSentenceBuffer = "";
+                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
 
                         subParts.forEach(part => {
                             let chunk = part.trim();
@@ -558,22 +561,15 @@
                                 chunk = chunk.replace(/\s+/g, " ").trim();
 
                                 if (chunk) {
-                                    finalSentenceBuffer += (finalSentenceBuffer ? " " : "") + chunk;
-                                    if (chunk.endsWith(',') || chunk.endsWith('、')) {
-                                        intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
-                                        finalSentenceBuffer = "";
-                                    }
+                                    intermediateLines.push({ text: chunk, isSpecial: false });
                                 }
                             }
                         });
-                        if (finalSentenceBuffer.trim()) {
-                            intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
-                        }
                     });
                 }
             });
 
-            // 2단계: 초고속 병렬 번역 레이어
+            // 2단계: 초고속 병렬 번역 레이어 (주소 토큰은 원본 문자열 보존)
             if (isJpMode) {
                 const promises = intermediateLines.map(item => {
                     if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
@@ -621,6 +617,7 @@
 
             finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
+            // ⭐ [최종 안전 복원] 토큰으로 숨겨놓았던 안전한 오리지널 URL 완벽 복구
             for (let idx = 0; idx < urlStorage.length; idx++) {
                 finalProcessedText = finalProcessedText.split(`__URL_TOKEN_${idx}__`).join(urlStorage[idx]);
             }
