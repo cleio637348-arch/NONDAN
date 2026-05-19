@@ -153,25 +153,44 @@
             line-height: 1.6;
         }
 
+        /* 하단 버튼 그룹 배치 디자인 */
+        .btn-group {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
         .notion-btn {
             background: none;
             border: 1px solid var(--border-notion);
             color: var(--text-main);
-            padding: 10px 16px;
             border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 500;
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s;
         }
 
         .btn-submit {
-            width: 100%;
-            margin-top: 10px;
+            flex: 1;
             background: rgba(255, 255, 255, 0.02);
             font-weight: 600;
             padding: 12px;
+            font-size: 0.85rem;
+        }
+
+        /* 크기가 작고 직관적으로 축소된 초기화 버튼 */
+        .btn-clear {
+            flex: none;
+            width: auto;
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.03);
+            font-weight: 500;
+            padding: 12px 14px;
+            font-size: 0.85rem;
         }
 
         .panel-header {
@@ -239,7 +258,7 @@
     </header>
 
     <div class="notion-card">
-        <div class="notion-label">시나리오 모드 설정 </div>
+        <div class="notion-label">모드 설정</div>
         
         <div class="notion-tabs">
             <button class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
@@ -266,8 +285,12 @@
             </div>
         </div>
 
-        <textarea id="rawScript" placeholder="여기에 원본 스크립트를 붙여넣으세요..."></textarea>
-        <button id="submitBtn" class="notion-btn btn-submit">스크립트 변환 및 실행</button>
+        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
+        
+        <div class="btn-group">
+            <button id="clearBtn" class="notion-btn btn-clear">초기화</button>
+            <button id="submitBtn" class="notion-btn btn-submit">실행</button>
+        </div>
     </div>
 
     <div class="notion-card">
@@ -287,7 +310,9 @@
         function switchMode(mode) {
             currentMode = mode;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if(event && event.target) {
+                event.target.classList.add('active');
+            }
 
             if (mode === 'tyeman') {
                 document.getElementById('panelTyeman').classList.remove('hidden');
@@ -324,16 +349,69 @@
             return fixed;
         }
 
+        // PDF 줄바꿈 결합 보정 알고리즘 - 무조건 공백 없이 타이트하게 결합되도록 전면 수정
+        function preprocessPDFText(text) {
+            const rawLines = text.split('\n');
+            const processedLines = [];
+            let buffer = "";
+
+            rawLines.forEach(line => {
+                let current = line.trim();
+                if (!current) return;
+
+                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
+                                  current.includes('핸드아웃') || current.includes('Handout') || current.includes('http');
+
+                if (isSpecial) {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
+                    processedLines.push(current);
+                    return;
+                }
+
+                if (buffer) {
+                    const lastChar = buffer.slice(-1);
+                    const isSentenceEnd = /[.!??”’)\]｣』]$/.test(lastChar);
+
+                    if (!isSentenceEnd) {
+                        // 중간 공백 삽입 규칙을 삭제하고 단어와 단어/조사를 매끄럽게 붙입니다.
+                        buffer += current;
+                    } else {
+                        processedLines.push(buffer.trim());
+                        buffer = current;
+                    }
+                } else {
+                    buffer = current;
+                }
+            });
+
+            if (buffer) {
+                processedLines.push(buffer.trim());
+            }
+
+            return processedLines.join('\n');
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            const textarea = document.getElementById('rawScript');
+            textarea.value = '';
+            textarea.focus();
+        });
+
         document.getElementById('submitBtn').addEventListener('click', function() {
             const rawScript = document.getElementById('rawScript').value;
             const container = document.getElementById('resultContainer');
             
             if (!rawScript.trim()) return;
 
-            container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">데이터 변환 중...</div>';
+            container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">데이터 분석 및 처리 중...</div>';
 
-            let fixedText = rawScript;
+            let restoredText = preprocessPDFText(rawScript);
+            let fixedText = restoredText;
 
+            // 이름 치환 엔진 가동
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
@@ -366,11 +444,11 @@
                 });
             }
 
-            const rawLines = fixedText.split('\n');
             const finalLines = [];
+            const rawLines = fixedText.split('\n');
 
             rawLines.forEach(line => {
-                const trimmedLine = line.trim();
+                let trimmedLine = line.trim();
                 if (!trimmedLine) return;
 
                 const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
@@ -379,49 +457,80 @@
                 if (isKpLine || isHandoutLine) {
                     finalLines.push(trimmedLine);
                 } else {
-                    let subText = trimmedLine;
-                    const safeBlocks = [];
+                    // 특수 기능 주입문구([[1D100]]) 가독성 띄어쓰기 가공 방지
+                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
 
-                    subText = subText.replace(/(\d+)\.\s/g, (match) => {
-                        const id = ` __SAFE_BLOCK_${safeBlocks.length}__ `;
-                        safeBlocks.push(match);
-                        return id;
-                    });
-
-                    subText = subText.replace(/(https?:\/\/[^\s]+)/g, (match) => {
-                        const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
-                        safeBlocks.push(match);
-                        return id;
-                    });
-
+                    // [스마트 격리 필터] 따옴표 및 괄호 구역 추출하여 내부 쉼표 보호
+                    const quotesAndBrackets = [];
                     const quotePatterns = [
-                        /“([^”\n]*)”/g, /"([^"\n]*)"/g, /‘([^’\n]*)’/g, /'([^'\n]*)'/g,
-                        /\(([^)\n]*)\)/g, /\[([^\]\n]*)\]/g, /「([^」\n]*)」/g, /『([^』\n]*)』/g
+                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
+                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
                     ];
 
+                    let protectedText = trimmedLine;
                     quotePatterns.forEach(pattern => {
-                        subText = subText.replace(pattern, (match) => {
-                            const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
-                            safeBlocks.push(match);
-                            return id;
+                        protectedText = protectedText.replace(pattern, (match) => {
+                            const safeMatch = match.replace(/,/g, '\u0001');
+                            const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
+                            quotesAndBrackets.push(safeMatch);
+                            return placeholder;
                         });
                     });
 
-                    const splitRegex = /(?<=[.!?]|\.{3,}|…|⋯+)\s+/g;
-                    const parts = subText.split(splitRegex);
-                    
-                    parts.forEach(part => {
-                        let chunk = part.trim();
-                        if (chunk) {
-                            for (let i = safeBlocks.length - 1; i >= 0; i--) {
-                                chunk = chunk.split(`__SAFE_BLOCK_${i}__`).join(safeBlocks[i]);
+                    // 문장 종결 부호 기반 1차 분할
+                    const sentences = protectedText.split(/(?<=[.!?]|\.{3,}|…|⋯+)\s+/g);
+
+                    sentences.forEach(sentence => {
+                        let currentSentence = sentence.trim();
+                        if (!currentSentence) return;
+
+                        // 쉼표 분할 처리 알고리즘 (8자 이하 예외 규칙 정밀 계산)
+                        let lastSplitIdx = 0;
+                        let i = 0;
+
+                        while (i < currentSentence.length) {
+                            if (currentSentence[i] === ',') {
+                                let segment = currentSentence.substring(lastSplitIdx, i + 1);
+                                
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    segment = segment.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                segment = segment.replace(/\u0001/g, ','); 
+                                segment = segment.replace(/\s+/g, " ").trim();
+
+                                // 공백 포함 8글자 이하 구간인 경우 쉼표 분할을 잠금(\u0000)
+                                if (segment.length <= 8) {
+                                    currentSentence = currentSentence.substring(0, i) + '\u0000' + currentSentence.substring(i + 1);
+                                } else {
+                                    lastSplitIdx = i + 1;
+                                }
                             }
-                            finalLines.push(chunk);
+                            i++;
                         }
+
+                        // 분할 허용된 진짜 쉼표(,) 뒤 공백을 기준으로 슬라이스
+                        const subParts = currentSentence.split(/(?<=,)\s+/g);
+
+                        subParts.forEach(part => {
+                            let chunk = part.trim();
+                            if (chunk) {
+                                chunk = chunk.replace(/\u0000/g, ',');
+                                
+                                // 격리 보호해 둔 따옴표/괄호 완벽 복원
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                chunk = chunk.replace(/\u0001/g, ',');
+                                chunk = chunk.replace(/\s+/g, " ").trim();
+
+                                if (chunk) finalLines.push(chunk);
+                            }
+                        });
                     });
                 }
             });
 
+            // 화면 결과 블록 그리드 렌더링
             const fragment = document.createDocumentFragment();
 
             finalLines.forEach(lineText => {
