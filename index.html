@@ -14,7 +14,7 @@
             --text-main: rgba(255, 255, 255, 0.85);
             --text-muted: rgba(255, 255, 255, 0.4);
             
-            /* 하이라이트 컬러 (Soft Notion Tone) */
+            /* 하이라이트 컬러 */
             --bg-kp: rgba(28, 131, 100, 0.15); 
             --text-kp: #4ade80;
             
@@ -34,6 +34,715 @@
             font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
+            padding: 40px 16px;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 0 6px 0;
+            letter-spacing: -0.03em;
+        }
+
+        header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .notion-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-notion);
+            border-radius: 6px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .notion-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        .notion-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border-notion);
+            margin-bottom: 18px;
+            padding-bottom: 4px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.06);
+            font-weight: 600;
+        }
+
+        .name-panel {
+            margin-bottom: 16px;
+        }
+
+        .name-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
+        .grid-multi { grid-template-columns: repeat(2, 1fr); }
+        
+        @media (max-width: 480px) {
+            .grid-tyeman { grid-template-columns: 1fr; }
+            .grid-multi { grid-template-columns: 1fr; }
+        }
+        @media (min-width: 768px) {
+            .grid-multi { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-notion);
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            outline: none;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+
+        textarea {
+            height: 150px;
+            resize: vertical;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .translate-option-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .translate-option-box input[type="checkbox"] {
+            accent-color: var(--text-kp);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .notion-btn {
+            background: none;
+            border: 1px solid var(--border-notion);
+            color: var(--text-main);
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s;
+        }
+
+        .btn-submit {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.02);
+            font-weight: 600;
+            padding: 12px;
+            font-size: 0.85rem;
+        }
+
+        .btn-clear {
+            flex: none;
+            width: auto;
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.03);
+            font-weight: 500;
+            padding: 12px 14px;
+            font-size: 0.85rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .notion-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            padding-bottom: 2px;
+        }
+
+        .notion-block {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            word-break: break-all;
+            outline: none;
+            color: var(--text-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .state-copied { background-color: var(--bg-copied) !important; }
+        .state-kp { background-color: var(--bg-kp); color: var(--text-kp); }
+        .state-check { background-color: var(--bg-check); color: var(--text-check); }
+        .state-handout { background-color: var(--bg-handout); color: var(--text-handout); }
+        .state-link { background-color: var(--bg-link); color: var(--text-link); }
+
+        .row-control {
+            padding: 8px 10px;
+            border: 1px solid var(--border-notion);
+            background: rgba(255,255,255,0.02);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .control-edit { color: var(--text-link); }
+        .control-del { color: #f87171; }
+
+        .state-editing {
+            background: #1c212c !important;
+            box-shadow: inset 0 0 0 1px #529cca;
+            cursor: text;
+        }
+
+        .loading-text {
+            color: var(--text-handout);
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 30px 0;
+            text-align: center;
+            animation: blinker 1.2s linear infinite;
+        }
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>논단군 스크립트 정리</h1>
+        <p>TRPG 텍스트 자동 정리 시스템</p>
+    </header>
+
+    <div class="notion-card">
+        <div class="notion-label">모드 설정</div>
+        
+        <div class="notion-tabs">
+            <button id="tabTyeman" class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
+            <button id="tabMulti" class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
+        </div>
+
+        <div id="panelTyeman" class="name-panel">
+            <div class="name-grid grid-tyeman">
+                <div class="input-group">
+                    <span>KPC 이름</span>
+                    <input type="text" id="kpcInput" placeholder="KPC 이름">
+                </div>
+                <div class="input-group">
+                    <span>PC / 탐사자 이름</span>
+                    <input type="text" id="pcInput" placeholder="PC 이름">
+                </div>
+            </div>
+        </div>
+
+        <div id="panelMulti" class="name-panel hidden">
+            <div class="name-grid grid-multi">
+                <div class="input-group"><span>HO1</span><input type="text" id="ch1Input" placeholder="1번 이름"></div>
+                <div class="input-group"><span>HO2</span><input type="text" id="ch2Input" placeholder="2번 이름"></div>
+                <div class="input-group"><span>HO3</span><input type="text" id="ch3Input" placeholder="3번 이름"></div>
+                <div class="input-group"><span>HO4</span><input type="text" id="ch4Input" placeholder="4번 이름"></div>
+            </div>
+        </div>
+
+        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
+        
+        <label class="translate-option-box">
+            <input type="checkbox" id="jpTranslateOpt">
+            <span>일본어 번역</span>
+        </label>
+
+        <div class="btn-group">
+            <button id="clearBtn" class="notion-btn btn-clear">초기화</button>
+            <button id="submitBtn" class="notion-btn btn-submit">실행</button>
+        </div>
+    </div>
+
+    <div class="notion-card">
+        <div class="panel-header">
+            <div class="notion-label" style="margin: 0;">출력된 스크립트 블록</div>
+            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 12px; font-size: 0.8rem;">전체 복사</button>
+        </div>
+        
+        <div id="resultContainer">
+            <div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'tyeman';
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabTyeman').classList.remove('active');
+            document.getElementById('tabMulti').classList.remove('active');
+            
+            if (mode === 'tyeman') {
+                document.getElementById('tabTyeman').classList.add('active');
+                document.getElementById('panelTyeman').classList.remove('hidden');
+                document.getElementById('panelMulti').classList.add('hidden');
+            } else {
+                document.getElementById('tabMulti').classList.add('active');
+                document.getElementById('panelTyeman').classList.add('hidden');
+                document.getElementById('panelMulti').classList.remove('hidden');
+            }
+        }
+
+        async function translateLine(text) {
+            if (!text.trim()) return text;
+            try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data[0]) {
+                    let result = "";
+                    data[0].forEach(part => {
+                        if (part[0]) result += part[0];
+                    });
+                    return result.trim();
+                }
+                return text;
+            } catch (error) {
+                console.error("번역 에러 발생:", error);
+                return text;
+            }
+        }
+
+        function hasBatchim(word) {
+            if (!word) return false;
+            const lastChar = word.charCodeAt(word.length - 1);
+            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false;
+            return (lastChar - 0xAC00) % 28 !== 0;
+        }
+
+        function fixKoreanJosa(text, name) {
+            if (!name) return text;
+            const batchim = hasBatchim(name);
+            const josaPairs = [
+                { pattern: /(이|가)/g, yes: '이', no: '가' },
+                { pattern: /(은|는)/g, yes: '은', no: '는' },
+                { pattern: /(을|를)/g, yes: '을', no: '를' },
+                { pattern: /(과|와)/g, yes: '과', no: '와' },
+                { pattern: /(랑|이랑)/g, yes: '이랑', no: '랑' },
+                { pattern: /(으로|로)/g, yes: '으로', no: '로' }
+            ];
+            let fixed = text;
+            josaPairs.forEach(pair => {
+                const regex = new RegExp(name + pair.pattern.source, 'g');
+                fixed = fixed.replace(regex, (match, p1) => name + (batchim ? pair.yes : pair.no));
+            });
+            return fixed;
+        }
+
+        // ⭐ [업데이트] 줄바꿈 엔진 전면 수정
+        function preprocessPDFText(text) {
+            let rawLines = text.split('\n');
+            const processedLines = [];
+            let buffer = "";
+
+            rawLines.forEach(line => {
+                let current = line.trim();
+                if (!current) return;
+
+                const isUrl = current.includes('http://') || current.includes('https://') || current.includes('BGM') || current.includes('bgm') || current.includes('브금');
+                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
+                                  current.includes('핸드아웃') || current.includes('비밀번호') || current.includes('Handout');
+
+                if (isSpecial || isUrl) {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
+                    processedLines.push(current);
+                    return;
+                }
+
+                if (buffer) {
+                    const lastChar = buffer.slice(-1);
+                    // 숫자로 끝나는 마침표(예: "1.") 인지 체크
+                    const isNumericDot = /\d+\.$/.test(buffer);
+                    const isSentenceEnd = /[.!??”’)\]지역｣』。．~～…⋯]+$/.test(lastChar);
+
+                    // 숫자+마침표라면 문장 종결로 보지 않고 이어 붙임
+                    if (isNumericDot) {
+                        buffer += " " + current;
+                    } else if (!isSentenceEnd) {
+                        buffer += " " + current;
+                    } else {
+                        // 기존 문장이 종결 형태면 닫고 새로 시작
+                        processedLines.push(buffer.trim());
+                        buffer = current;
+                    }
+                } else {
+                    buffer = current;
+                }
+            });
+
+            if (buffer) {
+                processedLines.push(buffer.trim());
+            }
+
+            // 원본에서 엔터(줄바꿈) 친 단위는 완벽하게 개별 보존하기 위해 강제 줄바꿈 유지
+            return processedLines.join('\n');
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            const textarea = document.getElementById('rawScript');
+            textarea.value = '';
+            document.getElementById('jpTranslateOpt').checked = false;
+            textarea.focus();
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', async function() {
+            const rawScript = document.getElementById('rawScript').value;
+            const container = document.getElementById('resultContainer');
+            const isJpMode = document.getElementById('jpTranslateOpt').checked;
+            
+            if (!rawScript.trim()) return;
+
+            container.innerHTML = '<div class="loading-text">LOADING...</div>';
+
+            let restoredText = preprocessPDFText(rawScript);
+            const intermediateLines = [];
+            
+            const urlStorage = [];
+            const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
+            
+            restoredText = restoredText.replace(urlRegex, (match) => {
+                const token = `__URL_TOKEN_${urlStorage.length}__`;
+                urlStorage.push(match);
+                return token;
+            });
+
+            const rawLines = restoredText.split('\n');
+
+            // 1단계: 문장 단위 정밀 분할 레이어
+            rawLines.forEach(line => {
+                let trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
+                const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
+                const isTokenOnly = trimmedLine.startsWith('__URL_TOKEN_') && trimmedLine.endsWith('__');
+
+                if (isKpLine || isHandoutLine || isTokenOnly) {
+                    intermediateLines.push({ text: trimmedLine, isSpecial: true });
+                } else {
+                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
+
+                    const quotesAndBrackets = [];
+                    const quotePatterns = [
+                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
+                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
+                    ];
+
+                    let protectedText = trimmedLine;
+                    quotePatterns.forEach(pattern => {
+                        protectedText = protectedText.replace(pattern, (match) => {
+                            const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
+                            const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
+                            quotesAndBrackets.push(safeMatch);
+                            return placeholder;
+                        });
+                    });
+
+                    // ⭐ [핵심 변경] (?<!\d) 패턴을 추가하여 앞이 숫자인 마침표 뒤에서는 분할을 스킵합니다.
+                    const sentences = protectedText.split(/(?<=(?<!\d)[.!?。．]|\.{3,}|…|⋯+|~|～|”|’|\]|\)|｣|』)(?=[^.!?。．…⋯~～”’\]\)｣』]|$)/g);
+
+                    sentences.forEach(sentence => {
+                        let currentSentence = sentence.trim();
+                        if (!currentSentence) return;
+
+                        let lastSplitIdx = 0;
+                        let i = 0;
+
+                        while (i < currentSentence.length) {
+                            if (currentSentence[i] === ',' || currentSentence[i] === '、') {
+                                let segment = currentSentence.substring(lastSplitIdx, i + 1);
+                                
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    segment = segment.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                segment = segment.replace(/\u0001/g, ',').replace(/\u0003/g, '、'); 
+                                segment = segment.replace(/\s+/g, " ").trim();
+
+                                if (segment.length <= 8) {
+                                    currentSentence = currentSentence.substring(0, i) + (currentSentence[i] === ',' ? '\u0000' : '\u0004') + currentSentence.substring(i + 1);
+                                } else {
+                                    lastSplitIdx = i + 1;
+                                }
+                            }
+                            i++;
+                        }
+
+                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
+
+                        subParts.forEach(part => {
+                            let chunk = part.trim();
+                            if (chunk) {
+                                chunk = chunk.replace(/\u0000/g, ',').replace(/\u0004/g, '、');
+                                
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                chunk = chunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+                                chunk = chunk.replace(/\s+/g, " ").trim();
+
+                                if (chunk) {
+                                    intermediateLines.push({ text: chunk, isSpecial: false });
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+
+            // 2단계: 초고속 병렬 번역 레이어
+            if (isJpMode) {
+                const promises = intermediateLines.map(item => {
+                    if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
+                    return translateLine(item.text);
+                });
+                const translatedResults = await Promise.all(promises);
+                for (let i = 0; i < intermediateLines.length; i++) {
+                    intermediateLines[i].text = translatedResults[i];
+                }
+            }
+
+            // 3단계: 이름 치환 및 조사 자동 보정 엔진
+            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
+            if (currentMode === 'tyeman') {
+                const kpcName = document.getElementById('kpcInput').value.trim();
+                const pcName = document.getElementById('pcInput').value.trim();
+                
+                if (kpcName) {
+                    finalProcessedText = finalProcessedText.split('KPC').join(kpcName);
+                    finalProcessedText = fixKoreanJosa(finalProcessedText, kpcName);
+                }
+                if (pcName) {
+                    finalProcessedText = finalProcessedText.split('탐사자').join(pcName);
+                    finalProcessedText = finalProcessedText.split('PC').join(pcName); 
+                    finalProcessedText = fixKoreanJosa(finalProcessedText, pcName);
+                }
+            } else {
+                const replaceTargets = [
+                    { id: 'ch1Input', keywords: ['HO1', 'ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
+                    { id: 'ch2Input', keywords: ['HO2', 'ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
+                    { id: 'ch3Input', keywords: ['HO3', 'ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
+                    { id: 'ch4Input', keywords: ['HO4', 'ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
+                ];
+
+                replaceTargets.forEach(target => {
+                    const customName = document.getElementById(target.id).value.trim();
+                    if (customName) {
+                        target.keywords.forEach(keyword => {
+                            finalProcessedText = finalProcessedText.split(keyword).join(customName);
+                        });
+                        finalProcessedText = fixKoreanJosa(finalProcessedText, customName);
+                    }
+                });
+            }
+
+            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+
+            for (let idx = 0; idx < urlStorage.length; idx++) {
+                finalProcessedText = finalProcessedText.split(`__URL_TOKEN_${idx}__`).join(urlStorage[idx]);
+            }
+
+            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
+            const absoluteFinalLines = finalProcessedText.split('\n');
+            const fragment = document.createDocumentFragment();
+
+            absoluteFinalLines.forEach(lineText => {
+                let currentLineText = lineText.trim();
+                if (!currentLineText) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'notion-row';
+
+                const mainBlock = document.createElement('div');
+                mainBlock.className = 'notion-block';
+                mainBlock.innerText = currentLineText;
+
+                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.includes('bgm') || currentLineText.includes('브금');
+                const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
+                const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
+                const isCheckLine = currentLineText.includes('판정');
+
+                if (isUrl) mainBlock.classList.add('state-link');
+                else if (isKp) mainBlock.classList.add('state-kp');
+                else if (isCheckLine) mainBlock.classList.add('state-check');
+                else if (isHandout) mainBlock.classList.add('state-handout');
+
+                mainBlock.onclick = function() {
+                    if (mainBlock.classList.contains('state-editing')) return;
+                    executeCopy(mainBlock.innerText, mainBlock);
+                };
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'row-control control-edit';
+                editBtn.innerText = '수정';
+                editBtn.onclick = function() {
+                    if (!mainBlock.classList.contains('state-editing')) {
+                        mainBlock.contentEditable = true;
+                        mainBlock.classList.add('state-editing');
+                        editBtn.innerText = '저장';
+                        mainBlock.focus();
+                    } else {
+                        mainBlock.contentEditable = false;
+                        mainBlock.classList.remove('state-editing');
+                        editBtn.innerText = '수정';
+                    }
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'row-control control-del';
+                deleteBtn.innerText = '삭제';
+                deleteBtn.onclick = function() {
+                    wrapper.remove();
+                    if (container.children.length === 0) {
+                        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
+                    }
+                };
+
+                wrapper.appendChild(mainBlock);
+                wrapper.appendChild(editBtn);
+                wrapper.appendChild(deleteBtn);
+                fragment.appendChild(wrapper);
+            });
+
+            container.innerHTML = ''; 
+            container.appendChild(fragment);
+        });
+
+        document.getElementById('copyAllBtn').addEventListener('click', function() {
+            const lines = document.querySelectorAll('.notion-block');
+            if (lines.length === 0) return;
+            const allTextArray = [];
+            lines.forEach(line => allTextArray.push(line.innerText));
+            const combinedText = allTextArray.join('\n');
+            const btn = document.getElementById('copyAllBtn');
+            executeCopy(combinedText, btn, "복사 완료!");
+            setTimeout(() => { btn.innerText = "전체 복사"; }, 1000);
+        });
+
+        function executeCopy(text, targetElement, successMessage = null) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showSuccess(targetElement, successMessage);
+                }).catch(() => {
+                    fallbackCopy(text, targetElement, successMessage);
+                });
+            } else {
+                fallbackCopy(text, targetElement, successMessage);
+            }
+        }
+
+        function fallbackCopy(text, targetElement, successMessage) {
+            const hiddenArea = document.createElement('textarea');
+            hiddenArea.value = text;
+            hiddenArea.style.position = 'fixed';
+            hiddenArea.style.top = '-9999px';
+            document.body.appendChild(hiddenArea);
+            hiddenArea.select();
+            try {
+                document.execCommand('copy');
+                showSuccess(targetElement, successMessage);
+            } catch (err) {
+                console.error('복사 실패');
+            }
+            document.body.removeChild(hiddenArea);
+        }
+
+        function showSuccess(el, msg) {
+            if(msg) {
+                el.innerText = msg;
+            } else {
+                el.classList.add('state-copied');
+                setTimeout(() => el.classList.remove('state-copied'), 400);
+            }
+        }
+    </script>
+</body>
+</html>
             padding: 40px 16px;
             background-color: var(--bg-main);
             color: var(--text-main);
