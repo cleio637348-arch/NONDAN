@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -412,7 +412,6 @@
             return fixed;
         }
 
-        // 엔터는 무조건 1차 줄바꿈 기준으로 강제 분리
         function preprocessPDFText(text) {
             return text.split('\n').map(line => line.trim()).filter(line => line).join('\n');
         }
@@ -447,7 +446,7 @@
 
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 문장 단위 정밀 분할 레이어
+            // 1단계: 글자 순회 기반의 무오류 텍스트 분할 알고리즘
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -477,27 +476,47 @@
                         });
                     });
 
-                    // 🛠️ [에러 해결 및 대수정] 오류 없이 말줄임표만 남기고 일반 온점/기호 무조건 쪼개기
-                    // 점 3개 이상(...)이나 기호(…)가 "아닌" 단독 마침표, 물음표, 느낌표 뒤를 매칭
-                    const targetRegex = /(?<!\.|\.\.)(?:\.|\?|!|。|．|~|～|”|’|\]|\)|｣|』)(?!\.|\?|!|…|⋯)/g;
-                    
-                    let matches = [...protectedText.matchAll(targetRegex)];
+                    // 🛠️ [브라우저 완전 호환 루프 가동] 안전한 문자열 순회형 분리기법
                     let sentences = [];
-                    let lastIdx = 0;
+                    let currentChunk = "";
+                    const splitMarkers = ['.', '?', '!', '。', '．', '~', '～', '”', '’', ']', ')', '｣', '』'];
 
-                    if (matches.length > 0) {
-                        matches.forEach(match => {
-                            let splitIdx = match.index + match[0].length;
-                            let segment = protectedText.substring(lastIdx, splitIdx).trim();
-                            if (segment) sentences.push(segment);
-                            lastIdx = splitIdx;
-                        });
-                        let remaining = protectedText.substring(lastIdx).trim();
-                        if (remaining) sentences.push(remaining);
-                    } else {
-                        sentences.push(protectedText);
+                    for (let idx = 0; idx < protectedText.length; idx++) {
+                        let char = protectedText[idx];
+                        currentChunk += char;
+
+                        // 마침표류 기호를 만나면 자를 준비를 함
+                        if (splitMarkers.includes(char)) {
+                            // 단, 말줄임표(...) 기호는 쪼개지 않도록 연속성 검사 진행
+                            let isEllipsis = false;
+                            
+                            // 1. 뒤에 마침표가 더 오는가? (예: .이 뒤에 연속으로 붙어오는가)
+                            if (char === '.' && idx + 1 < protectedText.length && protectedText[idx + 1] === '.') {
+                                isEllipsis = true;
+                            }
+                            // 2. 앞에 마침표가 있었는가? (예: 이미 마침표 연속 도중인가)
+                            if (char === '.' && idx - 1 >= 0 && protectedText[idx - 1] === '.') {
+                                isEllipsis = true;
+                            }
+                            // 3. 특수 말줄임 기호(…, ⋯)의 연속 여부 확인
+                            if ((char === '…' || char === '⋯')) {
+                                isEllipsis = true;
+                            }
+
+                            // 말줄임표가 아닌 순수 단독 마침표 세트라면 그 자리에서 문장 싹둑 분리
+                            if (!isEllipsis) {
+                                if (currentChunk.trim()) {
+                                    sentences.push(currentChunk.trim());
+                                }
+                                currentChunk = "";
+                            }
+                        }
+                    }
+                    if (currentChunk.trim()) {
+                        sentences.push(currentChunk.trim());
                     }
 
+                    // 콤마 처리 및 최종 마크다운 가공 레이어
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
@@ -524,7 +543,8 @@
                             i++;
                         }
 
-                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
+                        const subParts = currentSentence.split(/[\s]+/);
+                        let finalSentenceBuffer = "";
 
                         subParts.forEach(part => {
                             let chunk = part.trim();
@@ -538,10 +558,17 @@
                                 chunk = chunk.replace(/\s+/g, " ").trim();
 
                                 if (chunk) {
-                                    intermediateLines.push({ text: chunk, isSpecial: false });
+                                    finalSentenceBuffer += (finalSentenceBuffer ? " " : "") + chunk;
+                                    if (chunk.endsWith(',') || chunk.endsWith('、')) {
+                                        intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
+                                        finalSentenceBuffer = "";
+                                    }
                                 }
                             }
                         });
+                        if (finalSentenceBuffer.trim()) {
+                            intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
+                        }
                     });
                 }
             });
@@ -613,4 +640,104 @@
                 mainBlock.className = 'notion-block';
                 mainBlock.innerText = currentLineText;
 
-                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://')
+                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.includes('bgm') || currentLineText.includes('브금');
+                const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
+                const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
+                const isCheckLine = currentLineText.includes('판정');
+
+                if (isUrl) mainBlock.classList.add('state-link');
+                else if (isKp) mainBlock.classList.add('state-kp');
+                else if (isCheckLine) mainBlock.classList.add('state-check');
+                else if (isHandout) mainBlock.classList.add('state-handout');
+
+                mainBlock.onclick = function() {
+                    if (mainBlock.classList.contains('state-editing')) return;
+                    executeCopy(mainBlock.innerText, mainBlock);
+                };
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'row-control control-edit';
+                editBtn.innerText = '수정';
+                editBtn.onclick = function() {
+                    if (!mainBlock.classList.contains('state-editing')) {
+                        mainBlock.contentEditable = true;
+                        mainBlock.classList.add('state-editing');
+                        editBtn.innerText = '저장';
+                        mainBlock.focus();
+                    } else {
+                        mainBlock.contentEditable = false;
+                        mainBlock.classList.remove('state-editing');
+                        editBtn.innerText = '수정';
+                    }
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'row-control control-del';
+                deleteBtn.innerText = '삭제';
+                deleteBtn.onclick = function() {
+                    wrapper.remove();
+                    if (container.children.length === 0) {
+                        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
+                    }
+                };
+
+                wrapper.appendChild(mainBlock);
+                wrapper.appendChild(editBtn);
+                wrapper.appendChild(deleteBtn);
+                fragment.appendChild(wrapper);
+            });
+
+            container.innerHTML = ''; 
+            container.appendChild(fragment);
+        });
+
+        document.getElementById('copyAllBtn').addEventListener('click', function() {
+            const lines = document.querySelectorAll('.notion-block');
+            if (lines.length === 0) return;
+            const allTextArray = [];
+            lines.forEach(line => allTextArray.push(line.innerText));
+            const combinedText = allTextArray.join('\n');
+            const btn = document.getElementById('copyAllBtn');
+            executeCopy(combinedText, btn, "복사 완료!");
+            setTimeout(() => { btn.innerText = "전체 복사"; }, 1000);
+        });
+
+        function executeCopy(text, targetElement, successMessage = null) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showSuccess(targetElement, successMessage);
+                }).catch(() => {
+                    fallbackCopy(text, targetElement, successMessage);
+                });
+            } else {
+                fallbackCopy(text, targetElement, successMessage);
+            }
+        }
+
+        function fallbackCopy(text, targetElement, successMessage) {
+            const hiddenArea = document.createElement('textarea');
+            hiddenArea.value = text;
+            hiddenArea.style.position = 'fixed';
+            hiddenArea.style.top = '-9999px';
+            document.body.appendChild(hiddenArea);
+            hiddenArea.select();
+            try {
+                document.execCommand('copy');
+                showSuccess(targetElement, successMessage);
+            } catch (err) {
+                console.error('복사 실패');
+            }
+            document.body.removeChild(hiddenArea);
+        }
+
+        function showSuccess(el, msg) {
+            if(msg) {
+                el.innerText = msg;
+            } else {
+                el.classList.add('state-copied');
+                setTimeout(() => el.classList.remove('state-copied'), 400);
+            }
+        }
+    </script>
+</body>
+</html>
