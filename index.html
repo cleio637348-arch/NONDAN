@@ -1,643 +1,585 @@
 <!DOCTYPE html>
-<!-- saved from url=(0251)file:///C:/Users/cleio/AppData/Local/Temp/cb892013-22e9-48b7-a71b-5b1751144632_ac5090df6a1fd9b9b5c81604f50613ed-89dc992a6e95eac50fc042d7a280395dc60f42c2%20(1).zip.632/ac5090df6a1fd9b9b5c81604f50613ed-89dc992a6e95eac50fc042d7a280395dc60f42c2/index.html -->
-<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRPG Premium Audio Link Station</title>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>스크립트 콘솔 (Script Console)</title>
     <style>
+        /* Notion Dark Mode Premium Theme */
         :root {
-            --bg-color: #060609;
-            --card-bg: rgba(15, 15, 25, 0.7);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --primary-color: #1db954;
-            --primary-hover: #1ed760;
-            --accent-blue: #3b82f6;
-            --accent-red: #ff5c5c;
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
+            --bg-main: #191919;
+            --bg-surface: #202020;
+            --bg-input: #252525;
+            --border-notion: rgba(255, 255, 255, 0.07);
+            --text-main: rgba(255, 255, 255, 0.85);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            
+            /* 요청하신 색상 가이드 반영 (Soft Notion Tone) */
+            --bg-kp: rgba(28, 131, 100, 0.15); /* 초록 */
+            --text-kp: #4ade80;
+            
+            --bg-check: rgba(239, 68, 68, 0.15); /* 빨간 */
+            --text-check: #f87171;
+            
+            --bg-handout: rgba(234, 179, 8, 0.12); /* 노란 */
+            --text-handout: #fde047;
+            
+            --bg-link: rgba(59, 130, 246, 0.15); /* 파란 */
+            --text-link: #60a5fa;
+            
+            --bg-copied: rgba(46, 170, 220, 0.15);
         }
 
         body {
-            background: radial-gradient(circle at 50% 0%, #131b33 0%, var(--bg-color) 70%);
+            font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            background-color: var(--bg-main);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
 
-        .player-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 28px;
-            padding: 28px;
-            width: 420px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(24px);
-            box-sizing: border-box;
+        header {
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 0 6px 0;
+            letter-spacing: -0.03em;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .notion-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-notion);
+            border-radius: 6px;
+            padding: 26px;
+            margin-bottom: 24px;
+        }
+
+        .notion-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 14px;
+            color: var(--text-muted);
+        }
+
+        /* 미니멀 탭 메뉴 */
+        .notion-tabs {
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid var(--border-notion);
+            margin-bottom: 22px;
+            padding-bottom: 6px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.1s ease;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.06);
+            font-weight: 600;
+        }
+
+        /* 그리드 레이아웃 */
+        .name-grid {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        
+        .grid-tyeman {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-multi {
+            grid-template-columns: repeat(4, 1fr);
         }
 
         .input-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 6px;
         }
 
-        .row {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-
-        input, select {
-            flex: 1;
-            min-width: 0; /* flex 아이템 튀어나옴 방지 */
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 12px 16px;
-            color: #ffffff !important;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        input:focus { 
-            border-color: var(--primary-color);
-            box-shadow: 0 0 10px rgba(29, 185, 84, 0.2);
-        }
-
-        select option {
-            background-color: #0f0f19;
-            color: #ffffff;
-        }
-
-        button {
-            background: var(--primary-color);
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            padding: 12px 18px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-            box-sizing: border-box;
-        }
-
-        button:hover { 
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-        
-        .storage-section {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 18px;
-            padding: 14px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* 하단 가로 정렬 버튼들의 비율 최적화 */
-        .storage-section .row select {
-            flex: 2; /* 선택 박스 너비를 조금 더 넓게 */
-        }
-        .storage-section .row button {
-            flex: 1; /* 버튼들은 균등한 비율로 */
-            padding: 12px 10px;
-            font-size: 13px;
-        }
-
-        #video-container {
-            width: 100%;
-            height: 230px;
-            background: #000;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #main-player {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .bypass-notice {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(8, 8, 12, 0.96);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        .bypass-link {
-            display: inline-block;
-            margin-top: 14px;
-            background: #e50914;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 13px;
-            transition: background 0.2s;
-        }
-        .bypass-link:hover { background: #ff1523; }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
-        .btn-ctrl {
-            background: transparent;
-            border: none;
+        .input-group span {
+            font-size: 0.75rem;
             color: var(--text-muted);
-            font-size: 20px; /* 아이콘 크기 키움 */
             font-weight: 600;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-notion);
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            box-sizing: border-box;
+            outline: none;
+            font-family: inherit;
+            transition: border 0.15s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        textarea {
+            height: 180px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .notion-btn {
+            background: none;
+            border: 1px solid var(--border-notion);
+            color: var(--text-main);
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
             cursor: pointer;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
+            transition: background 0.12s ease;
         }
 
-        .btn-ctrl:hover { 
-            color: var(--text-main); 
-            background: rgba(255, 255, 255, 0.06); 
+        .notion-btn:hover {
+            background: rgba(255, 255, 255, 0.04);
         }
 
-        .btn-main {
-            background: #ffffff !important;
-            color: #000 !important;
-            width: 54px;
-            height: 54px;
-            font-size: 24px;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        .btn-submit {
+            width: 100%;
+            margin-top: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            font-weight: 600;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .btn-submit:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .btn-main:hover { 
-            transform: scale(1.08); 
-            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4); 
-        }
-
-        #loop-trigger {
-            font-size: 12px;
-            width: auto;
-            height: auto;
-            padding: 8px 14px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .active { 
-            color: var(--primary-color) !important; 
-            border-color: rgba(29, 185, 84, 0.3) !important;
-            filter: drop-shadow(0 0 8px rgba(29, 185, 84, 0.4)); 
-        }
-        
-        .playlist {
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 20px;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-
-        .playlist-title { 
-            font-size: 11px; 
-            color: var(--text-muted); 
-            text-transform: uppercase; 
-            letter-spacing: 1.5px; 
-            margin-bottom: 12px; 
-            font-weight: 700;
-        }
-
-        .track {
-            padding: 12px 14px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 13px;
+        .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.02);
-            margin-bottom: 8px;
-            border: 1px solid transparent;
-            transition: all 0.2s;
+            margin-bottom: 22px;
         }
 
-        .track:hover { 
-            background: rgba(255, 255, 255, 0.06); 
-            border-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .track.playing { 
-            color: var(--primary-color); 
-            font-weight: 600; 
-            background: rgba(29, 185, 84, 0.08); 
-            border-color: rgba(29, 185, 84, 0.2);
-            box-shadow: inset 3px 0 0 var(--primary-color);
-            padding-left: 16px;
-        }
-
-        .track-info {
+        /* 세련된 노션 한 줄 블록 디자인 */
+        .notion-row {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            align-items: stretch;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .notion-block {
             flex: 1;
-        }
-
-        .track-name { font-size: 14px; color: #fff; font-weight: 500; }
-        .track.playing .track-name { color: var(--primary-color); }
-        .track-id { font-size: 11px; color: var(--text-muted); }
-
-        .btn-del {
-            background: transparent;
-            color: var(--accent-red);
-            border: none;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            border-radius: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.2s;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            word-break: break-all;
+            outline: none;
+            color: var(--text-main);
+            transition: background 0.1s ease;
+        }
+        
+        .notion-block:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
-        .btn-del:hover { background: rgba(255, 92, 92, 0.12); }
+        /* 하이라이트 상태 클래스 */
+        .state-copied {
+            background-color: var(--bg-copied) !important;
+        }
 
-        .non-profit-footer {
-            margin-top: 20px;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.25);
-            text-align: center;
-            line-height: 1.6;
-            word-break: keep-all;
+        .state-kp {
+            background-color: var(--bg-kp);
+            color: var(--text-kp);
+        }
+        .state-kp:hover { background-color: rgba(28, 131, 100, 0.22); }
+
+        .state-check {
+            background-color: var(--bg-check);
+            color: var(--text-check);
+        }
+        .state-check:hover { background-color: rgba(239, 68, 68, 0.22); }
+
+        .state-handout {
+            background-color: var(--bg-handout);
+            color: var(--text-handout);
+        }
+        .state-handout:hover { background-color: rgba(234, 179, 8, 0.18); }
+
+        .state-link {
+            background-color: var(--bg-link);
+            color: var(--text-link);
+        }
+        .state-link:hover { background-color: rgba(59, 130, 246, 0.22); }
+
+        /* 미니멀 컨트롤 버튼 */
+        .row-control {
+            padding: 0 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.1s ease, color 0.1s ease;
+        }
+        .notion-row:hover .row-control {
+            opacity: 0.4;
+        }
+        .notion-row:hover .row-control:hover {
+            opacity: 1;
+        }
+        .control-edit:hover { color: var(--text-link); background: rgba(255,255,255,0.02); }
+        .control-del:hover { color: #f87171; background: rgba(248, 113, 113, 0.03); }
+
+        .state-editing {
+            background: #1c212c !important;
+            box-shadow: inset 0 0 0 1px #529cca;
+            cursor: text;
         }
     </style>
 </head>
 <body>
 
-<div class="player-card">
-    <div class="input-group">
-        <input type="text" id="url-input" placeholder="유튜브 링크 주소를 입력하세요">
-        <div class="row">
-            <input type="text" id="name-input" placeholder="곡 이름을 입력하세요 (예: 마을 테마)">
-            <button onclick="addTrack()">트랙 추가</button>
-        </div>
-    </div>
+    <header>
+        <h1>스크립트 콘솔</h1>
+        <p>TRPG 텍스트 자동 변환 및 문장 분할 시스템</p>
+    </header>
 
-    <div class="storage-section">
-        <div class="row">
-            <input type="text" id="pack-name-input" placeholder="저장할 팩 이름 (예: 전투 세션)">
-            <button style="background: var(--accent-blue);" onclick="savePlaylistPack()">팩 저장</button>
-        </div>
-        <div class="row">
-            <select id="saved-packs-select">
-                <option value="">저장된 플레이리스트 선택</option>
-            </select>
-            <button style="background: #3f3f46;" onclick="loadPlaylistPack()">불러오기</button>
-            <button style="background: var(--accent-red);" onclick="deletePlaylistPack()">팩 삭제</button>
-        </div>
-    </div>
-
-    <div id="video-container">
-        <div id="main-player"></div>
-        <div id="bypass-screen" class="bypass-notice">
-            <span style="font-size: 14px; color: var(--accent-red); font-weight: bold;">외부 재생 차단된 저작권 영상</span>
-            <span style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">저작권 보호로 인해 플레이어 내 재생을 지원하지 않는 영상입니다. 아래 버튼을 눌러 새창으로 안전하게 감상하세요.</span>
-            <a id="bypass-btn" href="file:///C:/Users/cleio/AppData/Local/Temp/cb892013-22e9-48b7-a71b-5b1751144632_ac5090df6a1fd9b9b5c81604f50613ed-89dc992a6e95eac50fc042d7a280395dc60f42c2%20(1).zip.632/ac5090df6a1fd9b9b5c81604f50613ed-89dc992a6e95eac50fc042d7a280395dc60f42c2/index.html#" target="_blank" class="bypass-link">유튜브에서 보기</a>
-        </div>
-    </div>
-
-    <div class="controls">
-        <button class="btn-ctrl" onclick="prevVideo()">⏮</button>
-        <button class="btn-ctrl btn-main" id="play-trigger" onclick="togglePlay()">▶</button>
-        <button class="btn-ctrl" onclick="nextVideo()">⏭</button>
-        <button class="btn-ctrl" id="loop-trigger" onclick="toggleLoop()">Repeat Off</button>
-    </div>
-
-    <div class="playlist">
-        <div class="playlist-title">Queue List</div>
-        <div id="track-list"></div>
-    </div>
-
-    <div class="non-profit-footer">
-        본 프로그램은 TRPG 세션을 위한 개인적·비영리적 목적으로만 사용되며, 상업적 이용 및 이익 창출을 절대 목적으로 하지 않습니다. 모든 영상의 저작권 및 광고 수익은 원저작권자(YouTube)에게 귀속됩니다.
-    </div>
-</div>
-
-<script src="./index_files/iframe_api"></script>
-<script>
-    let playlist = []; 
-    let currentIndex = 0;
-    let isLooping = false;
-    let isPlaying = false;
-    let player = null;
-
-    window.onYouTubeIframeAPIReady = function() {
-        player = new YT.Player('main-player', {
-            height: '100%',
-            width: '100%',
-            videoId: '',
-            playerVars: {
-                'autoplay': 1,
-                'controls': 1,
-                'rel': 0,
-                'modestbranding': 1,
-                'origin': window.location.origin
-            },
-            events: {
-                'onStateChange': onPlayerStateChange,
-                'onError': onPlayerError
-            }
-        });
-        updateSavedPacksSelect();
+    <div class="notion-card">
+        <div class="notion-label">시나리오 엔진 설정</div>
         
-        window.addEventListener("message", (event) => {
-            if (event.data && event.data.type === "ADD_TRPG_TRACK") {
-                document.getElementById('url-input').value = event.data.url;
-                document.getElementById('name-input').value = event.data.title || "";
-                window.addTrack();
-            }
-        });
-    };
+        <div class="notion-tabs">
+            <button class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드 (1:1)</button>
+            <button class="tab-btn" onclick="switchMode('multi')">다인 모드 (Multi)</button>
+        </div>
 
-    function onPlayerStateChange(event) {
-        if (event.data === YT.PlayerState.ENDED) {
-            if (isLooping) {
-                player.playVideo();
+        <div id="panelTyeman" class="name-grid grid-tyeman">
+            <div class="input-group">
+                <span>KPC 이름</span>
+                <input type="text" id="kpcInput" placeholder="KPC 치환 이름 입력">
+            </div>
+            <div class="input-group">
+                <span>PC / 탐사자 이름</span>
+                <input type="text" id="pcInput" placeholder="PC 치환 이름 입력">
+            </div>
+        </div>
+
+        <div id="panelMulti" class="hidden">
+            <div class="name-grid grid-multi">
+                <div class="input-group"><span>HO1 / PC1</span><input type="text" id="ch1Input" placeholder="1번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO2 / PC2</span><input type="text" id="ch2Input" placeholder="2번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO3 / PC3</span><input type="text" id="ch3Input" placeholder="3번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO4 / PC4</span><input type="text" id="ch4Input" placeholder="4번 캐릭터 이름"></div>
+            </div>
+        </div>
+
+        <textarea id="rawScript" placeholder="여기에 변환할 원본 스크립트를 붙여넣으세요..."></textarea>
+        <button id="submitBtn" class="notion-btn btn-submit">스크립트 변환 및 실행</button>
+    </div>
+
+    <div class="notion-card">
+        <div class="panel-header">
+            <div class="notion-label" style="margin: 0;">출력된 스크립트 블록</div>
+            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 14px; font-size: 0.8rem;">전체 복사</button>
+        </div>
+        
+        <div id="resultContainer">
+            <div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>
+        </div>
+    </div>
+
+    <textarea id="hiddenClipboard" style="position:fixed; top:-9999px; left:-9999px;"></textarea>
+
+    <script>
+        let currentMode = 'tyeman';
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (mode === 'tyeman') {
+                document.getElementById('panelTyeman').classList.remove('hidden');
+                document.getElementById('panelMulti').classList.add('hidden');
             } else {
-                window.nextVideo();
+                document.getElementById('panelTyeman').classList.add('hidden');
+                document.getElementById('panelMulti').classList.remove('hidden');
             }
         }
-        const trigger = document.getElementById('play-trigger');
-        if (event.data === YT.PlayerState.PLAYING) {
-            isPlaying = true;
-            trigger.innerText = '❚❚';
-        } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-            isPlaying = false;
-            trigger.innerText = '▶';
-        }
-    }
 
-    function onPlayerError(event) {
-        if (event.data === 101 || event.data === 150 || event.data === 2) {
-            const bypassScreen = document.getElementById('bypass-screen');
-            bypassScreen.style.display = 'flex';
-            document.getElementById('bypass-btn').href = `https://www.youtube.com/watch?v=${playlist[currentIndex].id}`;
+        function hasBatchim(word) {
+            if (!word) return false;
+            const lastChar = word.charCodeAt(word.length - 1);
+            if (lastChar < 0xAC00 || lastChar > 0xD7A3) return false;
+            return (lastChar - 0xAC00) % 28 !== 0;
         }
-    }
 
-    window.togglePlay = function() {
-        if (playlist.length === 0 || !player) return;
-        
-        const trigger = document.getElementById('play-trigger');
-        if (isPlaying) {
-            player.pauseVideo();
-            trigger.innerText = '▶';
-            isPlaying = false;
-        } else {
-            const state = player.getPlayerState();
-            if(state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED) {
-                player.playVideo();
-                trigger.innerText = '❚❚';
-                isPlaying = true;
+        function fixKoreanJosa(text, name) {
+            if (!name) return text;
+            const batchim = hasBatchim(name);
+            const josaPairs = [
+                { pattern: /(이|가)/g, yes: '이', no: '가' },
+                { pattern: /(은|는)/g, yes: '은', no: '는' },
+                { pattern: /(을|를)/g, yes: '을', no: '를' },
+                { pattern: /(과|와)/g, yes: '과', no: '와' },
+                { pattern: /(랑|이랑)/g, yes: '이랑', no: '랑' },
+                { pattern: /(으로|로)/g, yes: '으로', no: '로' }
+            ];
+            let fixed = text;
+            josaPairs.forEach(pair => {
+                const regex = new RegExp(name + pair.pattern.source, 'g');
+                fixed = fixed.replace(regex, (match, p1) => name + (batchim ? pair.yes : pair.no));
+            });
+            return fixed;
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            const rawScript = document.getElementById('rawScript').value;
+            const container = document.getElementById('resultContainer');
+            
+            if (!rawScript.trim()) return;
+
+            container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">데이터 변환 중...</div>';
+
+            let fixedText = rawScript;
+
+            if (currentMode === 'tyeman') {
+                const kpcName = document.getElementById('kpcInput').value.trim();
+                const pcName = document.getElementById('pcInput').value.trim();
+                
+                if (kpcName) {
+                    fixedText = fixedText.split('KPC').join(kpcName);
+                    fixedText = fixKoreanJosa(fixedText, kpcName);
+                }
+                if (pcName) {
+                    fixedText = fixedText.split('탐사자').join(pcName);
+                    fixedText = fixedText.split('PC').join(pcName); 
+                    fixedText = fixKoreanJosa(fixedText, pcName);
+                }
             } else {
-                playTrack(currentIndex);
+                const replaceTargets = [
+                    { id: 'ch1Input', keywords: ['HO1', 'ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
+                    { id: 'ch2Input', keywords: ['HO2', 'ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
+                    { id: 'ch3Input', keywords: ['HO3', 'ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
+                    { id: 'ch4Input', keywords: ['HO4', 'ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
+                ];
+
+                replaceTargets.forEach(target => {
+                    const customName = document.getElementById(target.id).value.trim();
+                    if (customName) {
+                        target.keywords.forEach(keyword => {
+                            fixedText = fixedText.split(keyword).join(customName);
+                        });
+                        fixedText = fixKoreanJosa(fixedText, customName);
+                    }
+                });
             }
-        }
-    };
 
-    window.prevVideo = function() {
-        if (currentIndex > 0) playTrack(currentIndex - 1);
-    };
+            const rawLines = fixedText.split('\n');
+            const finalLines = [];
 
-    window.nextVideo = function() {
-        if (currentIndex < playlist.length - 1) {
-            playTrack(currentIndex + 1);
-        } else if (isLooping && playlist.length > 0) {
-            playTrack(0);
-        }
-    };
+            rawLines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
 
-    window.toggleLoop = function() {
-        isLooping = !isLooping;
-        const trigger = document.getElementById('loop-trigger');
-        if (isLooping) {
-            trigger.innerText = 'Repeat On';
-            trigger.classList.add('active');
-        } else {
-            trigger.innerText = 'Repeat Off';
-            trigger.classList.remove('active');
-        }
-    };
+                const isKpLine = trimmedLine.includes('키퍼 정보') || 
+                                 trimmedLine.includes('키퍼') || 
+                                 trimmedLine.includes('KP') || 
+                                 trimmedLine.includes('kp') || 
+                                 trimmedLine.includes('Kp');
 
-    function extractVideoId(url) {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/live\/)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    }
+                const isHandoutLine = trimmedLine.includes('핸드아웃') || 
+                                      trimmedLine.includes('비밀번호') || 
+                                      trimmedLine.includes('Handout') || 
+                                      trimmedLine.includes('handout');
 
-    window.addTrack = function() {
-        const urlInput = document.getElementById('url-input');
-        const nameInput = document.getElementById('name-input');
-        
-        const id = extractVideoId(urlInput.value);
-        let trackName = nameInput.value.trim();
-        
-        if (!id) {
-            alert('올바른 유튜브 주소 양식이 아닙니다.');
-            return;
-        }
-        
-        if (!trackName) {
-            trackName = `기본 트랙 ${playlist.length + 1}`;
-        }
-        
-        playlist.push({ id: id, name: trackName });
-        urlInput.value = '';
-        nameInput.value = '';
-        
-        renderPlaylist();
-        if (playlist.length === 1) {
-            playTrack(0);
-        }
-    };
+                // KP 지문 혹은 핸드아웃 지문은 분할 처리 우회
+                if (isKpLine || isHandoutLine) {
+                    finalLines.push(trimmedLine);
+                } else {
+                    let subText = trimmedLine;
+                    const safeBlocks = [];
 
-    window.removeTrack = function(index, event) {
-        event.stopPropagation();
-        playlist.splice(index, 1);
-        
-        if (currentIndex >= playlist.length && playlist.length > 0) {
-            currentIndex = playlist.length - 1;
-        }
-        
-        renderPlaylist();
-        
-        if (playlist.length > 0 && index === currentIndex) {
-            playTrack(currentIndex);
-        } else if (playlist.length === 0) {
-            player.stopVideo();
-            document.getElementById('bypass-screen').style.display = 'none';
-            isPlaying = false;
-            document.getElementById('play-trigger').innerText = '▶';
-        }
-    };
+                    // 1. 숫자+마침표 보호
+                    subText = subText.replace(/(\d+)\.\s/g, (match) => {
+                        const id = ` __SAFE_BLOCK_${safeBlocks.length}__ `;
+                        safeBlocks.push(match);
+                        return id;
+                    });
 
-    function renderPlaylist() {
-        const listContainer = document.getElementById('track-list');
-        listContainer.innerHTML = '';
-        
-        if (playlist.length === 0) {
-            listContainer.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:15px;">대기열이 비어 있습니다.</div>';
-            return;
-        }
+                    // 2. 오디오 URL 보호
+                    subText = subText.replace(/(https?:\/\/[^\s]+)/g, (match) => {
+                        const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
+                        safeBlocks.push(match);
+                        return id;
+                    });
 
-        playlist.forEach((trackData, index) => {
-            const track = document.createElement('div');
-            track.className = `track ${index === currentIndex ? 'playing' : ''}`;
-            track.innerHTML = `
-                <div class="track-info" onclick="playTrack(${index})">
-                    <span class="track-name">🎵 ${trackData.name}</span>
-                    <span class="track-id">영상 ID: ${trackData.id}</span>
-                </div>
-                <button class="btn-del" onclick="removeTrack(${index}, event)">삭제</button>
-            `;
-            listContainer.appendChild(track);
+                    // 3. 따옴표 및 괄호 쌍 내부 보호
+                    const quotePatterns = [
+                        /“([^”\n]*)”/g, /"([^"\n]*)"/g,
+                        /‘([^’\n]*)’/g, /'([^'\n]*)'/g,
+                        /\(([^)\n]*)\)/g, /\[([^\]\n]*)\]/g,
+                        /「([^」\n]*)」/g, /『([^』\n]*)』/g
+                    ];
+
+                    quotePatterns.forEach(pattern => {
+                        subText = subText.replace(pattern, (match) => {
+                            const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
+                            safeBlocks.push(match);
+                            return id;
+                        });
+                    });
+
+                    // 4. 문장부호 및 말줄임표 분할 (. ! ? ... … ⋯)
+                    const splitRegex = /(?<=[.!?]|\.{3,}|…|⋯+)\s+/g;
+                    const parts = subText.split(splitRegex);
+                    
+                    parts.forEach(part => {
+                        let chunk = part.trim();
+                        if (chunk) {
+                            for (let i = safeBlocks.length - 1; i >= 0; i--) {
+                                chunk = chunk.split(`__SAFE_BLOCK_${i}__`).join(safeBlocks[i]);
+                            }
+                            finalLines.push(chunk);
+                        }
+                    });
+                }
+            });
+
+            const fragment = document.createDocumentFragment();
+
+            finalLines.forEach(lineText => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'notion-row';
+
+                const mainBlock = document.createElement('div');
+                mainBlock.className = 'notion-block';
+                mainBlock.innerText = lineText;
+
+                // 조건별 스타일 지정
+                const isUrl = lineText.includes('http://') || lineText.includes('https://') ||
+                              lineText.includes('BGM') || lineText.includes('bgm') || lineText.includes('브금');
+                const isKp = lineText.includes('키퍼 정보') || lineText.includes('키퍼') || lineText.includes('KP') || lineText.includes('kp') || lineText.includes('Kp');
+                const isHandout = lineText.includes('핸드아웃') || lineText.includes('비밀번호') || lineText.includes('Handout') || lineText.includes('handout');
+                const isCheckLine = lineText.includes('판정');
+
+                if (isKp) {
+                    mainBlock.classList.add('state-kp');
+                } else if (isCheckLine) {
+                    mainBlock.classList.add('state-check');
+                } else if (isHandout) {
+                    mainBlock.classList.add('state-handout');
+                } else if (isUrl) {
+                    mainBlock.classList.add('state-link');
+                }
+
+                mainBlock.onclick = function() {
+                    if (mainBlock.classList.contains('state-editing')) return;
+                    executeCopy(mainBlock.innerText, mainBlock);
+                };
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'row-control control-edit';
+                editBtn.innerText = '수정';
+                editBtn.onclick = function() {
+                    if (!mainBlock.classList.contains('state-editing')) {
+                        mainBlock.contentEditable = true;
+                        mainBlock.classList.add('state-editing');
+                        editBtn.innerText = '저장';
+                        mainBlock.focus();
+                    } else {
+                        mainBlock.contentEditable = false;
+                        mainBlock.classList.remove('state-editing');
+                        editBtn.innerText = '수정';
+                    }
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'row-control control-del';
+                deleteBtn.innerText = '삭제';
+                deleteBtn.onclick = function() {
+                    wrapper.remove();
+                    if (container.children.length === 0) {
+                        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
+                    }
+                };
+
+                wrapper.appendChild(mainBlock);
+                wrapper.appendChild(editBtn);
+                wrapper.appendChild(deleteBtn);
+                fragment.appendChild(wrapper);
+            });
+
+            container.innerHTML = ''; 
+            container.appendChild(fragment);
         });
-    }
 
-    window.playTrack = function(index) {
-        if (!player) return;
-        if (index >= 0 && index < playlist.length) {
-            currentIndex = index;
-            renderPlaylist();
-            
-            document.getElementById('bypass-screen').style.display = 'none';
-            
-            player.mute();
-            player.loadVideoById(playlist[currentIndex].id);
-            
-            setTimeout(() => {
-                player.unMute();
-                player.playVideo();
-            }, 150);
+        document.getElementById('copyAllBtn').addEventListener('click', function() {
+            const lines = document.querySelectorAll('.notion-block');
+            if (lines.length === 0) return;
+            const allTextArray = [];
+            lines.forEach(line => allTextArray.push(line.innerText));
+            const combinedText = allTextArray.join('\n');
+            const btn = document.getElementById('copyAllBtn');
+            executeCopy(combinedText, btn, "복사 완료!");
+            setTimeout(() => { btn.innerText = "전체 복사"; }, 1000);
+        });
 
-            isPlaying = true;
-            document.getElementById('play-trigger').innerText = '❚❚';
-        }
-    };
-
-    window.savePlaylistPack = function() {
-        const packNameInput = document.getElementById('pack-name-input');
-        const packName = packNameInput.value.trim();
-        
-        if (!packName) {
-            alert('저장할 플레이리스트 팩 이름을 입력해 주세요.');
-            return;
-        }
-        if (playlist.length === 0) {
-            alert('현재 대기열에 저장할 트랙이 하나도 없습니다.');
-            return;
-        }
-        
-        let savedData = localStorage.getItem('trpg_named_packs');
-        let packs = savedData ? JSON.parse(savedData) : {};
-        
-        packs[packName] = playlist;
-        localStorage.setItem('trpg_named_packs', JSON.stringify(packs));
-        
-        packNameInput.value = '';
-        updateSavedPacksSelect();
-        alert(`[${packName}] 플레이리스트가 성공적으로 저장되었습니다.`);
-    };
-
-    window.loadPlaylistPack = function() {
-        const select = document.getElementById('saved-packs-select');
-        const selectedPack = select.value;
-        
-        if (!selectedPack) {
-            alert('불러올 플레이리스트를 먼저 선택해 주세요.');
-            return;
-        }
-        
-        let savedData = localStorage.getItem('trpg_named_packs');
-        if (savedData) {
-            let packs = JSON.parse(savedData);
-            if (packs[selectedPack]) {
-                playlist = packs[selectedPack];
-                currentIndex = 0;
-                renderPlaylist();
-                playTrack(0);
+        function executeCopy(text, targetElement, successMessage = null) {
+            const hiddenArea = document.getElementById('hiddenClipboard');
+            hiddenArea.value = text;
+            hiddenArea.select();
+            try {
+                document.execCommand('copy');
+                if(successMessage) {
+                    targetElement.innerText = successMessage;
+                } else {
+                    targetElement.classList.add('state-copied');
+                    setTimeout(() => targetElement.classList.remove('state-copied'), 400);
+                }
+            } catch (err) {
+                console.error('Copy restriction');
             }
         }
-    };
-
-    window.deletePlaylistPack = function() {
-        const select = document.getElementById('saved-packs-select');
-        const selectedPack = select.value;
-        
-        if (!selectedPack) {
-            alert('삭제할 플레이리스트를 선택해 주세요.');
-            return;
-        }
-        
-        if (confirm(`정말로 [${selectedPack}] 팩을 삭제하시겠습니까?`)) {
-            let savedData = localStorage.getItem('trpg_named_packs');
-            if (savedData) {
-                let packs = JSON.parse(savedData);
-                delete packs[selectedPack];
-                localStorage.setItem('trpg_named_packs', JSON.stringify(packs));
-                updateSavedPacksSelect();
-                alert(`[${selectedPack}] 팩이 삭제되었습니다.`);
-            }
-        }
-    };
-
-    function updateSavedPacksSelect() {
-        const select = document.getElementById('saved-packs-select');
-        select.innerHTML = '<option value="">-- 저장된 플레이리스트 선택 --</option>';
-        
-        let savedData = localStorage.getItem('trpg_named_packs');
-        if (savedData) {
-            let packs = JSON.parse(savedData);
-            for (let packName in packs) {
-                const opt = document.createElement('option');
-                opt.value = packName;
-                opt.innerText = packName;
-                select.appendChild(opt);
-            }
-        }
-    }
-</script>
-
-</body></html>
+    </script>
+</body>
+</html>
