@@ -1,114 +1,135 @@
-<html lang="ko"><head>
+<html lang="ko" data-theme="dark">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>논단군 스크립트 정리</title>
     <style>
-        /* Notion Dark Mode Premium Theme */
-        :root {
+        /* 테마 변수 설계 */
+        :root[data-theme="dark"] {
             --bg-main: #191919;
             --bg-surface: #202020;
             --bg-input: #252525;
-            --border-notion: rgba(255, 255, 255, 0.07);
-            --text-main: rgba(255, 255, 255, 0.85);
-            --text-muted: rgba(255, 255, 255, 0.4);
-            
-            /* 하이라이트 컬러 (Soft Notion Tone) */
-            --bg-kp: rgba(28, 131, 100, 0.15); 
-            --text-kp: #4ade80;
-            
-            --bg-check: rgba(239, 68, 68, 0.15); 
-            --text-check: #f87171;
-            
-            --bg-handout: rgba(234, 179, 8, 0.12); 
-            --text-handout: #fde047;
-            
-            --bg-link: rgba(59, 130, 246, 0.15); 
-            --text-link: #60a5fa;
-            
+            --border-notion: rgba(255, 255, 255, 0.08);
+            --text-main: rgba(255, 255, 255, 0.88);
+            --text-muted: rgba(255, 255, 255, 0.45);
             --bg-copied: rgba(46, 170, 220, 0.25);
+            --bg-badge: rgba(255, 255, 255, 0.05);
+            
+            /* 블록 컬러 스케일 */
+            --bg-kp: rgba(28, 131, 100, 0.18); --text-kp: #4ade80;
+            --bg-check: rgba(239, 68, 68, 0.18); --text-check: #f87171;
+            --bg-handout: rgba(234, 179, 8, 0.15); --text-handout: #fde047;
+            --bg-link: rgba(59, 130, 246, 0.18); --text-link: #60a5fa;
+        }
+
+        :root[data-theme="light"] {
+            --bg-main: #fbfbfa;
+            --bg-surface: #ffffff;
+            --bg-input: #f4f4f3;
+            --border-notion: rgba(55, 53, 47, 0.09);
+            --text-main: #37352f;
+            --text-muted: #787774;
+            --bg-copied: rgba(35, 131, 226, 0.15);
+            --bg-badge: rgba(55, 53, 47, 0.05);
+            
+            /* 블록 컬러 스케일 */
+            --bg-kp: #edf6ec; --text-kp: #1c7c45;
+            --bg-check: #fdebec; --text-check: #c33a3a;
+            --bg-handout: #fbf3db; --text-handout: #89632a;
+            --bg-link: #eef3fc; --text-link: #1d5ca9;
         }
 
         body {
             font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            max-width: 800px;
+            max-width: 840px;
             margin: 0 auto;
-            padding: 40px 16px;
+            padding: 40px 18px;
             background-color: var(--bg-main);
             color: var(--text-main);
             -webkit-font-smoothing: antialiased;
             letter-spacing: -0.01em;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         header {
-            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
         }
 
         header h1 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 700;
-            color: rgba(255, 255, 255, 0.9);
             margin: 0 0 6px 0;
             letter-spacing: -0.03em;
         }
 
         header p {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             margin: 0;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-notion);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .notion-card {
             background: var(--bg-surface);
             border: 1px solid var(--border-notion);
-            border-radius: 6px;
-            padding: 18px;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
         }
 
         .notion-label {
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             color: var(--text-muted);
+            text-transform: uppercase;
         }
 
         .notion-tabs {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             border-bottom: 1px solid var(--border-notion);
-            margin-bottom: 18px;
-            padding-bottom: 4px;
+            margin-bottom: 20px;
+            padding-bottom: 6px;
         }
 
         .tab-btn {
             background: none;
             border: none;
             color: var(--text-muted);
-            padding: 8px 12px;
-            font-size: 0.85rem;
+            padding: 8px 14px;
+            font-size: 0.88rem;
             font-weight: 500;
             cursor: pointer;
             border-radius: 4px;
-            transition: all 0.1s ease;
-            -webkit-tap-highlight-color: transparent;
+            transition: all 0.15s ease;
         }
 
         .tab-btn.active {
             color: var(--text-main);
-            background: rgba(255, 255, 255, 0.06);
+            background: var(--bg-input);
             font-weight: 600;
         }
 
-        .name-panel {
-            margin-bottom: 16px;
-        }
-
-        .name-grid {
-            display: grid;
-            gap: 12px;
-        }
-        
+        .name-panel { margin-bottom: 18px; }
+        .name-grid { display: grid; gap: 14px; }
         .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
         .grid-multi { grid-template-columns: repeat(2, 1fr); }
         
@@ -132,43 +153,45 @@
             font-weight: 600;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
         input[type="text"], textarea {
             width: 100%;
             background-color: var(--bg-input);
             border: 1px solid var(--border-notion);
-            border-radius: 4px;
+            border-radius: 5px;
             color: var(--text-main);
             font-size: 0.9rem;
-            padding: 10px 12px;
+            padding: 12px;
             box-sizing: border-box;
             outline: none;
             font-family: inherit;
-            -webkit-appearance: none;
+            transition: border-color 0.15s ease;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--text-link);
         }
 
         textarea {
-            height: 150px;
+            height: 160px;
             resize: vertical;
             line-height: 1.6;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
-        .options-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 14px;
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 6px 2px;
         }
 
         .translate-option-box {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
+            gap: 10px;
+            font-size: 0.88rem;
             color: var(--text-main);
             cursor: pointer;
             user-select: none;
@@ -176,8 +199,8 @@
 
         .translate-option-box input[type="checkbox"] {
             accent-color: var(--text-kp);
-            width: 16px;
-            height: 16px;
+            width: 17px;
+            height: 17px;
             cursor: pointer;
         }
 
@@ -185,38 +208,38 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 10px;
+            margin-top: 14px;
         }
 
         .notion-btn {
-            background: none;
+            background: var(--bg-surface);
             border: 1px solid var(--border-notion);
             color: var(--text-main);
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: background 0.1s;
+            font-size: 0.88rem;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .notion-btn:hover {
+            background: var(--bg-input);
         }
 
         .btn-submit {
             flex: 1;
-            background: rgba(255, 255, 255, 0.02);
             font-weight: 600;
-            padding: 12px;
-            font-size: 0.85rem;
+            padding: 14px;
+            background: var(--bg-input);
+            border-color: var(--text-link);
         }
 
         .btn-clear {
             flex: none;
-            width: auto;
-            color: #f87171;
-            border-color: rgba(239, 68, 68, 0.15);
-            background: rgba(239, 68, 68, 0.03);
+            color: var(--text-check);
+            border-color: var(--border-notion);
+            padding: 14px 18px;
             font-weight: 500;
-            padding: 12px 14px;
-            font-size: 0.85rem;
         }
 
         .panel-header {
@@ -226,52 +249,113 @@
             margin-bottom: 16px;
         }
 
+        /* 링크 추출 패널 토글화 스타일 개편 */
+        .toggle-summary {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            gap: 6px;
+        }
+        .toggle-summary::-webkit-details-marker { display: none; }
+        .toggle-arrow {
+            font-size: 0.65rem;
+            transition: transform 0.15s ease;
+            display: inline-block;
+        }
+        details[open] .toggle-arrow {
+            transform: rotate(90deg);
+        }
+        .link-content-wrapper {
+            margin-top: 14px;
+            padding-top: 4px;
+        }
+
+        .link-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 8px 10px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            margin-bottom: 6px;
+            border: 1px solid var(--border-notion);
+        }
+        .link-url-text {
+            color: var(--text-link);
+            text-decoration: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 80%;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .stats-badge {
+            background: var(--bg-badge);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid var(--border-notion);
+        }
+
         .notion-row {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            padding-bottom: 2px;
+            gap: 8px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border-notion);
+            padding-bottom: 4px;
         }
 
         .notion-block {
             flex: 1;
-            padding: 10px 12px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.92rem;
+            line-height: 1.6;
             word-break: break-all;
             outline: none;
             color: var(--text-main);
-            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.1s;
         }
 
         .state-copied { background-color: var(--bg-copied) !important; }
-        .state-kp { background-color: var(--bg-kp); color: var(--text-kp); }
+        .state-kp { background-color: var(--bg-kp); color: var(--text-kp); font-weight: 500; }
         .state-check { background-color: var(--bg-check); color: var(--text-check); }
         .state-handout { background-color: var(--bg-handout); color: var(--text-handout); }
         .state-link { background-color: var(--bg-link); color: var(--text-link); }
 
         .row-control {
-            padding: 8px 10px;
+            padding: 8px 12px;
             border: 1px solid var(--border-notion);
-            background: rgba(255,255,255,0.02);
+            background: var(--bg-surface);
             color: var(--text-muted);
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             white-space: nowrap;
-            -webkit-tap-highlight-color: transparent;
         }
-        
+        .row-control:hover { background: var(--bg-input); }
         .control-edit { color: var(--text-link); }
-        .control-del { color: #f87171; }
+        .control-del { color: var(--text-check); }
 
         .state-editing {
-            background: #1c212c !important;
-            box-shadow: inset 0 0 0 1px #529cca;
+            background: var(--bg-input) !important;
+            box-shadow: inset 0 0 0 1px var(--text-link);
             cursor: text;
         }
 
@@ -280,20 +364,24 @@
             font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: 0.1em;
-            padding: 30px 0;
+            padding: 40px 0;
             text-align: center;
             animation: blinker 1.2s linear infinite;
         }
-        @keyframes blinker {
-            50% { opacity: 0.3; }
-        }
+        @keyframes blinker { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>논단군 스크립트 정리</h1>
-        <p>TRPG 텍스트 자동 정리 시스템</p>
+        <div>
+            <h1>논단군 스크립트 정리</h1>
+            <p>TRPG 텍스트 자동 정리 시스템</p>
+        </div>
+        <button class="theme-toggle-btn" id="themeToggle" title="테마 변경">
+            <svg id="themeIconDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg id="themeIconLight" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        </button>
     </header>
 
     <div class="notion-card">
@@ -326,9 +414,9 @@
             </div>
         </div>
 
-        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
+        <textarea id="rawScript" placeholder="텍스트를 이곳에 붙여넣어 주세요."></textarea>
         
-        <div class="options-group">
+        <div class="options-grid">
             <label class="translate-option-box">
                 <input type="checkbox" id="pdfModeOpt">
                 <span>PDF 줄바꿈 보정</span>
@@ -337,25 +425,76 @@
                 <input type="checkbox" id="jpTranslateOpt">
                 <span>일본어 번역</span>
             </label>
+            <label class="translate-option-box">
+                <input type="checkbox" id="descModeOpt">
+                <span>/desc 추가</span>
+            </label>
+            <label class="translate-option-box">
+                <input type="checkbox" id="extractLinkOpt" checked>
+                <span>세션 링크 별도 추출</span>
+            </label>
+            <label class="translate-option-box">
+                <input type="checkbox" id="calcStatsOpt" checked>
+                <span>실시간 세션 인포계산</span>
+            </label>
         </div>
 
         <div class="btn-group">
             <button id="clearBtn" class="notion-btn btn-clear">초기화</button>
-            <button id="submitBtn" class="notion-btn btn-submit">실행</button>
+            <button id="submitBtn" class="notion-btn btn-submit">실행 대시보드 반영</button>
         </div>
+    </div>
+
+    <div class="notion-card hidden" id="linkCollectorCard">
+        <details open>
+            <summary class="toggle-summary">
+                <span class="toggle-arrow">▶</span> 세션 링크 모음 (BGM / 자료)
+            </summary>
+            <div class="link-content-wrapper">
+                <div class="panel-header" style="margin-bottom: 12px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">스크립트 내 추출된 미디어 자원</span>
+                    <button id="copyAllLinksBtn" class="notion-btn" style="padding: 4px 10px; font-size: 0.78rem;">전체 복사</button>
+                </div>
+                <div id="linkContainer"></div>
+            </div>
+        </details>
     </div>
 
     <div class="notion-card">
         <div class="panel-header">
             <div class="notion-label" style="margin: 0;">출력된 스크립트 블록</div>
-            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 12px; font-size: 0.8rem;">전체 복사</button>
+            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 14px; font-size: 0.8rem; font-weight: 600;">전체 복사</button>
         </div>
         
-        <div id="resultContainer"><div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div></div>
+        <div class="stats-container hidden" id="statsContainer">
+            <div class="stats-badge" id="totalCharBadge">총 글자 수: 0자</div>
+            <div class="stats-badge" id="estimatedTimeBadge">예상 세션 시간: 약 0분</div>
+        </div>
+        
+        <div id="resultContainer">
+            <div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>
+        </div>
     </div>
 
     <script>
         let currentMode = 'tyeman';
+
+        // 테마 관리
+        const themeToggle = document.getElementById('themeToggle');
+        const darkIcon = document.getElementById('themeIconDark');
+        const lightIcon = document.getElementById('themeIconLight');
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', targetTheme);
+            
+            if (targetTheme === 'light') {
+                darkIcon.classList.add('hidden'); lightIcon.classList.remove('hidden');
+            } else {
+                lightIcon.classList.add('hidden'); darkIcon.classList.remove('hidden');
+            }
+        });
 
         function switchMode(mode) {
             currentMode = mode;
@@ -414,14 +553,24 @@
             return fixed;
         }
 
+        // 엔터 무결성 강화 파서
         function preprocessText(text, usePdfMode) {
-            let rawLines = text.split('\n');
+            let rawLines = text.split(/\r?\n/);
             const processedLines = [];
             let buffer = "";
 
             rawLines.forEach(line => {
                 let current = line.trim();
-                if (!current) return;
+                
+                // 원본 빈 줄 구조 보존
+                if (!current) {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
+                    processedLines.push(""); 
+                    return;
+                }
 
                 const isSpecial = /키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(current);
 
@@ -438,7 +587,7 @@
                     if (buffer) {
                         const isEnd = /[.!??”’)\]지역｣』。．]$/.test(buffer.slice(-1));
                         if (!isEnd) {
-                            buffer += current; 
+                            buffer += " " + current; 
                         } else {
                             processedLines.push(buffer.trim());
                             buffer = current;
@@ -447,6 +596,10 @@
                         buffer = current;
                     }
                 } else {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
                     processedLines.push(current);
                 }
             });
@@ -459,6 +612,7 @@
             document.getElementById('rawScript').value = '';
             document.getElementById('jpTranslateOpt').checked = false;
             document.getElementById('pdfModeOpt').checked = false;
+            document.getElementById('descModeOpt').checked = false;
             
             document.getElementById('kpcInput').value = '';
             document.getElementById('pcInput').value = '';
@@ -467,6 +621,8 @@
             document.getElementById('ch3Input').value = '';
             document.getElementById('ch4Input').value = '';
             
+            document.getElementById('linkCollectorCard').classList.add('hidden');
+            document.getElementById('statsContainer').classList.add('hidden');
             document.getElementById('resultContainer').innerHTML = '<div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>';
         });
 
@@ -475,11 +631,14 @@
             const container = document.getElementById('resultContainer');
             const isJpMode = document.getElementById('jpTranslateOpt').checked;
             const usePdfMode = document.getElementById('pdfModeOpt').checked;
+            const useDescMode = document.getElementById('descModeOpt').checked;
+            const useExtractLink = document.getElementById('extractLinkOpt').checked;
+            const useCalcStats = document.getElementById('calcStatsOpt').checked;
             
             if (!rawScript.trim()) return;
             container.innerHTML = '<div class="loading-text" id="loadingProgress">스크립트 변환 중...</div>';
 
-            // [1단계] 이름 및 조사 교정
+            // [1단계] 이름 교정
             let preProcessedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -499,99 +658,105 @@
                 });
             }
 
-            // [2단계] 최적화 전처리
+            // [2단계] 전처리 실행
             let restoredText = preprocessText(preProcessedText, usePdfMode);
             const intermediateLines = [];
             const restoredLines = restoredText.split('\n');
 
-            // [3단계] 정밀 특수기호 보호 및 규칙 기반 분할 토큰 스트림 엔진
+            // [3단계] 토큰 파싱 엔진
             restoredLines.forEach(line => {
                 let trimmed = line.trim();
-                if (!trimmed) return;
+                
+                // 빈 엔터 라인 데이터 무결성 보장
+                if (!trimmed) {
+                    intermediateLines.push({ text: "", isSpecial: false, isBlank: true });
+                    return;
+                }
 
                 if (/키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(trimmed)) {
                     intermediateLines.push({ text: trimmed.replace(/\s+/g, " "), isSpecial: true });
                 } else {
-                    // 숫자의 소수점 임시 보호
-                    let protectedText = trimmed.replace(/(\d+)\./g, '$1\u0004');
-                    
-                    // 요구사항: ‘’“”[]<> 및 기존 대괄호/인용 부호 보호 레이어
-                    const quotes = [];
-                    const patterns = [
-                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
-                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g,
-                        /「[^」]*」/g, /『[^』]*』/g, /<[^>]*>/g
-                    ];
-                    
-                    patterns.forEach(pattern => {
-                        protectedText = protectedText.replace(pattern, (match) => {
-                            // 보호막 기호 내부의 마침표와 쉼표를 대체하여 분리를 완전 차단
-                            const safe = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003').replace(/\./g, '\u0005');
-                            quotes.push(safe);
-                            return `\u0002_${quotes.length - 1}_\u0002`;
+                    // 요구사항 반영: 마침표+특수문자 조합 무조건 즉시 분절 강제 기믹
+                    // (.” , .] , .> 등 마침표 바로 뒤 특수문자가 붙어있는 세트를 탐지해 임시 경계용 제어코드 치환)
+                    let puncSpecialEnforced = trimmed.replace(/([.!?。．…⋯]+['"”’\]\>」』\)])/g, "$1\u0008");
+                    let puncSegments = puncSpecialEnforced.split('\u0008');
+
+                    puncSegments.forEach(puncSegment => {
+                        let segTrimmed = puncSegment.trim();
+                        if (!segTrimmed) return;
+
+                        let protectedText = segTrimmed.replace(/(\d+)\./g, '$1\u0004');
+                        
+                        const quotes = [];
+                        const patterns = [
+                            /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
+                            /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g,
+                            /「[^」]*」/g, /『[^』]*』/g, /<[^>]*>/g
+                        ];
+                        
+                        patterns.forEach(pattern => {
+                            protectedText = protectedText.replace(pattern, (match) => {
+                                const safe = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003').replace(/\./g, '\u0005');
+                                quotes.push(safe);
+                                return `\u0002_${quotes.length - 1}_\u0002`;
+                            });
                         });
-                    });
 
-                    // 요구사항: 마침표+특수문자 조합(보호된 인덱스 바로 앞 마침표) 처리 기믹 구성 후 문장 종결 분할
-                    // 종결자 분할 시 마침표 바로 뒤에 보호 기호가 연결되면 한 덩어리로 묶어서 분할 기점으로 설정
-                    let sentences = protectedText.replace(/([.!?。．…⋯]+(?:\u0002_\d+_\u0002)?)/g, "$1\u0007").split('\u0007');
+                        let sentences = protectedText.replace(/([.!?。．…⋯]+(?:\u0002_\d+_\u0002)?)/g, "$1\u0007").split('\u0007');
 
-                    sentences.forEach(sentence => {
-                        let currentSentence = sentence.trim();
-                        if (!currentSentence) return;
+                        sentences.forEach(sentence => {
+                            let currentSentence = sentence.trim();
+                            if (!currentSentence) return;
 
-                        // 쉼표 분할 스트림 파서
-                        let tokens = currentSentence.split(/([,、])/);
-                        let currentChunk = "";
-                        let segmentToCheck = "";
+                            let tokens = currentSentence.split(/([,、])/);
+                            let currentChunk = "";
+                            let segmentToCheck = "";
 
-                        for (let t = 0; t < tokens.length; t++) {
-                            let token = tokens[t];
-                            if (!token) continue;
+                            for (let t = 0; t < tokens.length; t++) {
+                                let token = tokens[t];
+                                if (!token) continue;
 
-                            if (token === ',' || token === '、') {
-                                // 임시 보호막 복원 후 글자 수 계산
-                                let checkStr = segmentToCheck;
-                                for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
+                                if (token === ',' || token === '、') {
+                                    let checkStr = segmentToCheck;
+                                    for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                    checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
 
-                                // 다음 남은 문자열 토큰의 실질 글자 수 복원 예측 계산 (우측 8글자 룰 검증)
-                                let nextStr = tokens.slice(t + 1).join("");
-                                for (let k = 0; k < quotes.length; k++) nextStr = nextStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                nextStr = nextStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
+                                    let nextStr = tokens.slice(t + 1).join("");
+                                    for (let k = 0; k < quotes.length; k++) nextStr = nextStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                    nextStr = nextStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
 
-                                // 요구사항: 앞뒤 여덟글자 준수 검증
-                                if (checkStr.length >= 8 && nextStr.length >= 8) {
-                                    let finalChunk = currentChunk;
-                                    for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
-                                    
-                                    if (finalChunk) {
-                                        // 잘려 나갈 때 쉼표 원본 기호를 끝에 유지 결합
-                                        intermediateLines.push({ text: finalChunk + token, isSpecial: false });
+                                    if (checkStr.length >= 8 && nextStr.length >= 8) {
+                                        let finalChunk = currentChunk;
+                                        for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                        finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
+                                        
+                                        if (finalChunk) {
+                                            intermediateLines.push({ text: finalChunk + token, isSpecial: false });
+                                        }
+                                        currentChunk = "";
+                                        segmentToCheck = "";
+                                    } else {
+                                        currentChunk += token;
                                     }
-                                    currentChunk = "";
-                                    segmentToCheck = "";
+                                    segmentToCheck += token;
                                 } else {
                                     currentChunk += token;
+                                    segmentToCheck += token;
                                 }
-                            } else {
-                                currentChunk += token;
-                                segmentToCheck += token;
                             }
-                        }
 
-                        if (currentChunk.trim()) {
-                            let finalChunk = currentChunk;
-                            for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
-                            if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
-                        }
+                            if (currentChunk.trim()) {
+                                let finalChunk = currentChunk;
+                                for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
+                                if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
+                            }
+                        });
                     });
                 }
             });
 
-            // [4단계] 초장문 데이터 가속 분할 번역 엔진 (Fail-Safe 개편 최적화)
+            // [4단계] 초장문 가속 번역 엔진
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
@@ -607,6 +772,7 @@
                     loadingTextEl.innerText = `대용량 번역 동기화 가속 중... (${i} / ${totalLines})`;
                     
                     while (i < totalLines) {
+                        if (intermediateLines[i].isBlank) { i++; continue; }
                         let lineText = intermediateLines[i].text;
                         if (currentChunkText.length + lineText.length + SEPARATOR.length > SAFE_LIMIT && currentChunkText.length > 0) {
                             break;
@@ -638,32 +804,72 @@
                             }
                         }
                         await sleep(50); 
+                    } else {
+                        i++;
                     }
                 }
             }
 
             // 후처리 공백 조사 흡수
             intermediateLines.forEach(item => {
-                item.text = item.text.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+                if(!item.isBlank) {
+                    item.text = item.text.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+                }
             });
 
-            // [5단계] UI 컴포넌트 렌더링 및 하이라이트 스타일 클래스 바인딩
+            // 링크 추출용 큐
+            const extractedLinks = [];
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+            // [5단계] UI 컴포넌트 렌더링
             const fragment = document.createDocumentFragment();
+            let totalCharacterCount = 0;
+
             intermediateLines.forEach(item => {
+                // 엔터 공백 라인 렌더링
+                if (item.isBlank) {
+                    const brWrapper = document.createElement('div');
+                    brWrapper.className = 'notion-row';
+                    brWrapper.style.border = 'none';
+                    brWrapper.style.height = '14px';
+                    
+                    const brBlock = document.createElement('div');
+                    brBlock.className = 'notion-block';
+                    brBlock.style.cursor = 'default';
+                    brBlock.innerHTML = '&nbsp;';
+                    
+                    brWrapper.appendChild(brBlock);
+                    fragment.appendChild(brWrapper);
+                    return;
+                }
+
                 let lineText = item.text.replace(/\s+/g, " ").trim();
                 if (!lineText) return;
+
+                const linksInLine = lineText.match(urlRegex);
+                if (linksInLine) {
+                    linksInLine.forEach(link => {
+                        if (!extractedLinks.includes(link)) extractedLinks.push(link);
+                    });
+                }
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'notion-row';
 
                 const mainBlock = document.createElement('div');
                 mainBlock.className = 'notion-block';
-                mainBlock.innerText = lineText;
 
-                if (/키퍼|KP|kp/i.test(lineText)) mainBlock.classList.add('state-kp');
-                else if (lineText.includes('판정')) mainBlock.classList.add('state-check');
-                else if (/핸드아웃|비밀번호|Handout/i.test(lineText)) mainBlock.classList.add('state-handout');
-                else if (/http|bgm|브금/i.test(lineText)) mainBlock.classList.add('state-link');
+                let isSystemBlock = false;
+                if (/키퍼|KP|kp/i.test(lineText)) { mainBlock.classList.add('state-kp'); isSystemBlock = true; }
+                else if (lineText.includes('판정')) { mainBlock.classList.add('state-check'); isSystemBlock = true; }
+                else if (/핸드아웃|비밀번호|Handout/i.test(lineText)) { mainBlock.classList.add('state-handout'); isSystemBlock = true; }
+                else if (/http|bgm|브금/i.test(lineText)) { mainBlock.classList.add('state-link'); isSystemBlock = true; }
+
+                if (useDescMode && !isSystemBlock && !lineText.startsWith('/desc ')) {
+                    lineText = '/desc ' + lineText;
+                }
+                mainBlock.innerText = lineText;
+                totalCharacterCount += lineText.length;
 
                 mainBlock.onclick = function() { if (!mainBlock.classList.contains('state-editing')) executeCopy(mainBlock.innerText, mainBlock); };
 
@@ -681,6 +887,7 @@
                         mainBlock.classList.remove('state-editing');
                         mainBlock.innerText = mainBlock.innerText.replace(/\s+/g, " ").trim();
                         editBtn.innerText = '수정';
+                        if (useCalcStats) recountStats();
                     }
                 };
 
@@ -689,6 +896,7 @@
                 deleteBtn.innerText = '삭제';
                 deleteBtn.onclick = function() {
                     wrapper.remove();
+                    if (useCalcStats) recountStats();
                     if (container.children.length === 0) container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
                 };
 
@@ -698,7 +906,60 @@
 
             container.innerHTML = ''; 
             container.appendChild(fragment);
+
+            // 링크 대시보드 렌더링 및 동적 구축
+            const linkCollectorCard = document.getElementById('linkCollectorCard');
+            const linkContainer = document.getElementById('linkContainer');
+            if (useExtractLink && extractedLinks.length > 0) {
+                linkCollectorCard.classList.remove('hidden');
+                linkContainer.innerHTML = '';
+                extractedLinks.forEach(link => {
+                    const row = document.createElement('div');
+                    row.className = 'link-item-row';
+                    
+                    const a = document.createElement('a');
+                    a.href = link; a.target = '_blank'; a.className = 'link-url-text'; a.innerText = link;
+                    
+                    const copySingleBtn = document.createElement('button');
+                    copySingleBtn.className = 'row-control';
+                    copySingleBtn.innerText = '복사';
+                    copySingleBtn.onclick = () => executeCopy(link, copySingleBtn, '복사됨');
+                    
+                    row.appendChild(a); row.appendChild(copySingleBtn);
+                    linkContainer.appendChild(row);
+                });
+
+                document.getElementById('copyAllLinksBtn').onclick = function(e) {
+                    e.preventDefault();
+                    executeCopy(extractedLinks.join('\n'), this, '전체 링크 복사 완료');
+                    setTimeout(() => { this.innerText = "링크만 전체 복사"; }, 1200);
+                };
+            } else {
+                linkCollectorCard.classList.add('hidden');
+            }
+
+            // 인포 통계 배지
+            const statsContainer = document.getElementById('statsContainer');
+            if (useCalcStats && totalCharacterCount > 0) {
+                statsContainer.classList.remove('hidden');
+                updateStatsUI(totalCharacterCount);
+            } else {
+                statsContainer.classList.add('hidden');
+            }
         });
+
+        function updateStatsUI(charCount) {
+            document.getElementById('totalCharBadge').innerText = `총 글자 수: ${charCount.toLocaleString()}자`;
+            const estTime = Math.ceil(charCount / 220);
+            document.getElementById('estimatedTimeBadge').innerText = `예상 플레이 시간: 약 ${estTime*2}분`;
+        }
+
+        function recountStats() {
+            const blocks = document.querySelectorAll('.notion-block');
+            let count = 0;
+            blocks.forEach(b => { if(b.innerText.trim()) count += b.innerText.length; });
+            updateStatsUI(count);
+        }
 
         document.getElementById('copyAllBtn').addEventListener('click', function() {
             const lines = document.querySelectorAll('.notion-block');
@@ -726,8 +987,14 @@
         }
 
         function showSuccess(el, msg) {
-            if(msg) el.innerText = msg;
-            else { el.classList.add('state-copied'); setTimeout(() => el.classList.remove('state-copied'), 400); }
+            const orig = el.innerText;
+            if(msg) {
+                el.innerText = msg;
+                setTimeout(() => { el.innerText = orig; }, 1000);
+            } else { 
+                el.classList.add('state-copied'); 
+                setTimeout(() => el.classList.remove('state-copied'), 400); 
+            }
         }
     </script>
 </body>
