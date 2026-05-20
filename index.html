@@ -412,7 +412,7 @@
             return fixed;
         }
 
-        // 🛠️ [PDF 최적화 결합 엔진 복원] 문장이 끝나지 않은 엔터(\n)를 감지해 유기적으로 이어 붙임
+        // 🛠️ [완전 교정된 PDF 최적화 결합 레이어]
         function preprocessPDFText(text) {
             let rawLines = text.split('\n').map(line => line.trim()).filter(line => line);
             const processedLines = [];
@@ -433,7 +433,7 @@
 
                 if (buffer) {
                     const lastChar = buffer.slice(-1);
-                    // 문장 종결 부호가 아닌 상태로 엔터가 쳐졌다면 자석처럼 다음 줄을 연결
+                    // 온전한 문장 종결 기호가 아닌 상태에서 엔터가 처진 경우 강제 연결
                     const isSentenceEnd = /[.!??”’)\]｣』。．]$/.test(lastChar);
 
                     if (!isSentenceEnd) {
@@ -470,10 +470,10 @@
 
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
-            // 1. PDF 긁어오기 줄바꿈 파괴 최적화 가동
+            // 1. PDF 긁어오기 최적화 가동
             let restoredText = preprocessPDFText(rawScript);
             
-            // 2. URL 및 BGM 주소 토큰화 보호
+            // 2. URL 및 BGM 주소 토큰화 격리 보호
             const urlStorage = [];
             const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
             
@@ -483,7 +483,7 @@
                 return token;
             });
 
-            // 3. 이름 사전 치환 및 조사 보정 엔진
+            // 3. 이름 사전 치환 및 조사 자동 교정 레이어
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
@@ -521,7 +521,7 @@
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 4. 정밀 정규식 우회형 문장 분할 레이어
+            // 4. 구형 브라우저 안전 지원형 문장 슬라이싱 레이어
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -567,8 +567,9 @@
                             if (char === '…' || char === '⋯') isEllipsis = true;
 
                             if (!isEllipsis) {
+                                // PDF 변환 유연성 확보: 마침표 뒤에 공백이 있거나, 다음 글자가 없거나, 닫는 괄호 계열일 때 자름
                                 const nextChar = (idx + 1 < protectedText.length) ? protectedText[idx + 1] : null;
-                                if (!nextChar || nextChar === ' ' || nextChar === '\t') {
+                                if (!nextChar || nextChar === ' ' || nextChar === '\t' || splitMarkers.includes(nextChar)) {
                                     if (currentChunk.trim()) {
                                         sentences.push(currentChunk.trim());
                                     }
@@ -581,7 +582,7 @@
                         sentences.push(currentChunk.trim());
                     }
 
-                    // 쉼표 기반 가공 및 버퍼 병합
+                    // 쉼표 단문 분해 처리 레이어
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
@@ -638,7 +639,7 @@
                 }
             });
 
-            // 5. 구글 초고속 번역 가동
+            // 5. 번역 가동 레이어
             if (isJpMode) {
                 const promises = intermediateLines.map(item => {
                     if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
@@ -650,7 +651,7 @@
                 }
             }
 
-            // 6. 격리 주소 복원 및 최종 렌더링
+            // 6. 주소 격리 해제 및 최종 화면 바인딩
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             
             for (let idx = 0; idx < urlStorage.length; idx++) {
