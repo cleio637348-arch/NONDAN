@@ -352,17 +352,21 @@
 
         function switchMode(mode) {
             currentMode = mode;
-            document.getElementById('tabTyeman').classList.remove('active');
-            document.getElementById('tabMulti').classList.remove('active');
-            
+            const tabTyeman = document.getElementById('tabTyeman');
+            const tabMulti = document.getElementById('tabMulti');
+            const panelTyeman = document.getElementById('panelTyeman');
+            const panelMulti = document.getElementById('panelMulti');
+
             if (mode === 'tyeman') {
-                document.getElementById('tabTyeman').classList.add('active');
-                document.getElementById('panelTyeman').classList.remove('hidden');
-                document.getElementById('panelMulti').classList.add('hidden');
+                tabTyeman.classList.add('active');
+                tabMulti.classList.remove('active');
+                panelTyeman.classList.remove('hidden');
+                panelMulti.classList.add('hidden');
             } else {
-                document.getElementById('tabMulti').classList.add('active');
-                document.getElementById('panelTyeman').classList.add('hidden');
-                document.getElementById('panelMulti').classList.remove('hidden');
+                tabMulti.classList.add('active');
+                tabTyeman.classList.remove('active');
+                panelMulti.classList.remove('hidden');
+                panelTyeman.classList.add('hidden');
             }
         }
 
@@ -474,7 +478,7 @@
 
             container.innerHTML = '<div class="loading-text" id="loadingProgress">LOADING... (0%)</div>';
 
-            // [0단계 최우선 처리] 이름 대치 및 조사 보정 엔진 선행 실행 연산 적용 (다인 모드 결함 해소)
+            // [0단계 최우선 처리] 이름 대치 및 조사 보정 엔진 선행 실행
             let preNameReplacedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -519,7 +523,8 @@
 
                 const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
                 const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
-                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.includes('BGM') || trimmedLine.includes('bgm') || trimmedLine.includes('브금');
+                // 기존 스크립트 에러 원인 코드 수정 (정의되지 않은 currentLineText 제거)
+                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.includes('BGM') || trimmedLine.toLowerCase().includes('bgm') || trimmedLine.includes('브금');
 
                 if (isKpLine || isHandoutLine || isUrlLine) {
                     intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
@@ -553,7 +558,7 @@
                         let subParts = [];
                         let currentCheckText = currentSentence;
                         
-                        while (true) {
+                        while (currentCheckText.length > 0) {
                             let cleanLengthCheck = currentCheckText;
                             for (let k = 0; k < quotesAndBrackets.length; k++) {
                                 cleanLengthCheck = cleanLengthCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
@@ -575,7 +580,8 @@
                                     subParts.push(beforeCommaPart + commaMatch[0]);
                                     currentCheckText = currentCheckText.substring(commaIdx + 1);
                                 } else {
-                                    currentCheckText = currentCheckText.substring(0, commaIdx) + (commaMatch[0] === ',' ? '\u0005' : '\u0006') + currentCheckText.substring(commaIdx + 1);
+                                    subParts.push(currentCheckText.substring(0, commaIdx + 1));
+                                    currentCheckText = currentCheckText.substring(commaIdx + 1);
                                 }
                             } else {
                                 subParts.push(currentCheckText);
@@ -586,8 +592,6 @@
                         subParts.forEach(part => {
                             let chunk = part.trim();
                             if (chunk) {
-                                chunk = chunk.replace(/\u0005/g, ',').replace(/\u0006/g, '、');
-                                
                                 for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
                                     chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                                 }
@@ -664,7 +668,7 @@
                 mainBlock.className = 'notion-block';
                 mainBlock.innerText = currentLineText;
 
-                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.includes('bgm') || currentLineText.includes('브금');
+                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.toLowerCase().includes('bgm') || currentLineText.includes('브금');
                 const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
                 const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
                 const isCheckLine = currentLineText.includes('판정');
