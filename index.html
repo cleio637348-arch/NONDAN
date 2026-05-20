@@ -474,7 +474,7 @@
 
             container.innerHTML = '<div class="loading-text" id="loadingProgress">LOADING... (0%)</div>';
 
-            // [우선 순위 격상] 1단계 가동 전 이름 및 조사 변환 엔진 먼저 적용
+            // [0단계 최우선 처리] 이름 대치 및 조사 보정 엔진 선행 실행 연산 적용 (다인 모드 결함 해소)
             let preNameReplacedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -491,10 +491,10 @@
                 }
             } else {
                 const replaceTargets = [
-                    { id: 'ch1Input', keywords: ['HO1', 'ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
-                    { id: 'ch2Input', keywords: ['HO2', 'ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
-                    { id: 'ch3Input', keywords: ['HO3', 'ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
-                    { id: 'ch4Input', keywords: ['HO4', 'ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
+                    { id: 'ch1Input', keywords: ['HO1', 'ho1', 'Ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
+                    { id: 'ch2Input', keywords: ['HO2', 'ho2', 'Ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
+                    { id: 'ch3Input', keywords: ['HO3', 'ho3', 'Ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
+                    { id: 'ch4Input', keywords: ['HO4', 'ho4', 'Ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
                 ];
 
                 replaceTargets.forEach(target => {
@@ -549,26 +549,22 @@
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // [핵심 변경 및 강화] 8글자 이상 구절 뒤의 쉼표(또는 、) 무조건 줄바꿈 분할 로직
-                        // 대괄호/따옴표 보호막 복원 전, 문자열 길이를 측정해가며 분할 수행
+                        // 8글자 이상 구절 뒤의 쉼표(또는 、) 무조건 줄바꿈 분할 로직
                         let subParts = [];
                         let currentCheckText = currentSentence;
                         
                         while (true) {
-                            // 감싸진 기호 요소를 제외하고 실제 체감 글자수 파악을 위한 임시 텍스트 연산
                             let cleanLengthCheck = currentCheckText;
                             for (let k = 0; k < quotesAndBrackets.length; k++) {
                                 cleanLengthCheck = cleanLengthCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                             }
                             cleanLengthCheck = cleanLengthCheck.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
 
-                            // 8글자 이상이면서 최초로 발견되는 쉼표 매칭 후 분할 위치 계산
                             const commaMatch = currentCheckText.match(/[,、]/);
                             if (commaMatch) {
                                 const commaIdx = commaMatch.index;
                                 const beforeCommaPart = currentCheckText.substring(0, commaIdx);
                                 
-                                // 앞부분의 실제 글자수 복원 후 길이 측정
                                 let restoredBefore = beforeCommaPart;
                                 for (let k = 0; k < quotesAndBrackets.length; k++) {
                                     restoredBefore = restoredBefore.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
@@ -579,7 +575,6 @@
                                     subParts.push(beforeCommaPart + commaMatch[0]);
                                     currentCheckText = currentCheckText.substring(commaIdx + 1);
                                 } else {
-                                    // 8글자 미만이면 이번 쉼표는 스킵하고 임시 임베딩 후 루프 우회
                                     currentCheckText = currentCheckText.substring(0, commaIdx) + (commaMatch[0] === ',' ? '\u0005' : '\u0006') + currentCheckText.substring(commaIdx + 1);
                                 }
                             } else {
@@ -588,7 +583,6 @@
                             }
                         }
 
-                        // 가공 완료된 청크 데이터 복원 후 적재
                         subParts.forEach(part => {
                             let chunk = part.trim();
                             if (chunk) {
