@@ -271,7 +271,6 @@
             cursor: text;
         }
 
-        /* LOADING 애니메이션 효과 */
         .loading-text {
             color: var(--text-handout);
             font-size: 1.1rem;
@@ -523,8 +522,7 @@
 
                 const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
                 const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
-                // 기존 스크립트 에러 원인 코드 수정 (정의되지 않은 currentLineText 제거)
-                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.includes('BGM') || trimmedLine.toLowerCase().includes('bgm') || trimmedLine.includes('브금');
+                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.toLowerCase().includes('bgm') || trimmedLine.includes('브금');
 
                 if (isKpLine || isHandoutLine || isUrlLine) {
                     intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
@@ -547,46 +545,40 @@
                         });
                     });
 
-                    // 온점 문장 분할
-                    const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)\s*/g);
+                    // 온점형태 문장 안전 분할
+                    let splitReadyText = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)\s+/g, "$1\u0007");
+                    const sentences = splitReadyText.split('\u0007');
 
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // 8글자 이상 구절 뒤의 쉼표(또는 、) 무조건 줄바꿈 분할 로직
+                        // [새로운 논리엔진] 8글자 이하의 문장 뒤의 쉼표구분 스킵 알고리즘
                         let subParts = [];
-                        let currentCheckText = currentSentence;
-                        
-                        while (currentCheckText.length > 0) {
-                            let cleanLengthCheck = currentCheckText;
-                            for (let k = 0; k < quotesAndBrackets.length; k++) {
-                                cleanLengthCheck = cleanLengthCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                            }
-                            cleanLengthCheck = cleanLengthCheck.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+                        let startIdx = 0;
 
-                            const commaMatch = currentCheckText.match(/[,、]/);
-                            if (commaMatch) {
-                                const commaIdx = commaMatch.index;
-                                const beforeCommaPart = currentCheckText.substring(0, commaIdx);
+                        for (let idx = 0; idx < currentSentence.length; idx++) {
+                            const char = currentSentence[idx];
+                            if (char === ',' || char === '、') {
+                                const segmentBefore = currentSentence.substring(startIdx, idx);
                                 
-                                let restoredBefore = beforeCommaPart;
+                                // 복원 후 실제 글자수 체크
+                                let restoredCheck = segmentBefore;
                                 for (let k = 0; k < quotesAndBrackets.length; k++) {
-                                    restoredBefore = restoredBefore.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                    restoredCheck = restoredCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                                 }
-                                restoredBefore = restoredBefore.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+                                restoredCheck = restoredCheck.replace(/\u0001/g, ',').replace(/\u0003/g, '、').trim();
 
-                                if (restoredBefore.trim().length >= 8) {
-                                    subParts.push(beforeCommaPart + commaMatch[0]);
-                                    currentCheckText = currentCheckText.substring(commaIdx + 1);
-                                } else {
-                                    subParts.push(currentCheckText.substring(0, commaIdx + 1));
-                                    currentCheckText = currentCheckText.substring(commaIdx + 1);
+                                // 8글자 이하(<=8)는 무시하고, 9글자 이상(>8)일 때만 분할 처리
+                                if (restoredCheck.length > 8) {
+                                    subParts.push(currentSentence.substring(startIdx, idx + 1));
+                                    startIdx = idx + 1;
                                 }
-                            } else {
-                                subParts.push(currentCheckText);
-                                break;
                             }
+                        }
+                        
+                        if (startIdx < currentSentence.length) {
+                            subParts.push(currentSentence.substring(startIdx));
                         }
 
                         subParts.forEach(part => {
@@ -607,7 +599,7 @@
                 }
             });
 
-            // 2단계: 장문 유저를 위한 대용량 안전 분할(Batch) 번역 레이어
+            // 2단계: 대용량 안전 분할 및 번역 결과 누락 감지 비상제동(Fail-Safe) 레이어
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
@@ -630,15 +622,24 @@
                         const translatedChunk = await translateLine(currentChunkText);
                         const translatedSplit = translatedChunk.split('\n');
 
-                        chunkIndices.forEach((origIdx, chunkSubIdx) => {
-                            if (translatedSplit[chunkSubIdx]) {
-                                intermediateLines[origIdx].text = translatedSplit[chunkSubIdx].trim();
+                        // 번역 유실/합쳐짐 검증 장치 (줄 수 일치 여부 판정)
+                        if (translatedSplit.length === chunkIndices.length) {
+                            chunkIndices.forEach((origIdx, chunkSubIdx) => {
+                                if (translatedSplit[chunkSubIdx]) {
+                                    intermediateLines[origIdx].text = translatedSplit[chunkSubIdx].trim();
+                                }
+                            });
+                        } else {
+                            // 줄 바꿈 개수 매칭이 어긋날 경우 한 줄씩 정밀 안전 재번역 모드로 실시간 긴급 우회
+                            for (let cIdx of chunkIndices) {
+                                const singleRes = await translateLine(intermediateLines[cIdx].text);
+                                intermediateLines[cIdx].text = singleRes.trim();
+                                await sleep(40);
                             }
-                        });
+                        }
 
                         currentChunkText = "";
                         chunkIndices = [];
-                        
                         await sleep(350); 
                     }
 
@@ -668,7 +669,7 @@
                 mainBlock.className = 'notion-block';
                 mainBlock.innerText = currentLineText;
 
-                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.toLowerCase().includes('bgm') || currentLineText.includes('브금');
+                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.toLowerCase().includes('bgm') || currentLineText.includes('브금');
                 const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
                 const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
                 const isCheckLine = currentLineText.includes('판정');
