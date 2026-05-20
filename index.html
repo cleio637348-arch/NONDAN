@@ -412,8 +412,9 @@
             ];
             let fixed = text;
             josaPairs.forEach(pair => {
-                const regex = new RegExp(name + pair.pattern.source, 'g');
-                fixed = fixed.replace(regex, (match, p1) => name + (batchim ? pair.yes : pair.no));
+                const escapedName = name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                const regex = new RegExp(escapedName + pair.pattern.source, 'g');
+                fixed = fixed.replace(regex, () => name + (batchim ? pair.yes : pair.no));
             });
             return fixed;
         }
@@ -477,7 +478,7 @@
 
             container.innerHTML = '<div class="loading-text" id="loadingProgress">LOADING... (0%)</div>';
 
-            // [0단계 최우선 처리] 이름 대치 및 조사 보정 엔진 선행 실행
+            // [0단계] 이름 대치 및 조사 보정 엔진 선행 실행
             let preNameReplacedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -515,7 +516,7 @@
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 문장 단위 정밀 분할 레이어
+            // 1단계: 마침표/쉼표 보호막 및 분할 토큰 스트림 엔진
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -529,13 +530,15 @@
                 } else {
                     trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
 
+                    // [추가 요구사항] 숫자+마침표 완전 보호 처리 (\u0004 기호로 일시 대피)
+                    let protectedText = trimmedLine.replace(/(\d+)\./g, '$1\u0004');
+
                     const quotesAndBrackets = [];
                     const quotePatterns = [
                         /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
                         /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
                     ];
 
-                    let protectedText = trimmedLine;
                     quotePatterns.forEach(pattern => {
                         protectedText = protectedText.replace(pattern, (match) => {
                             const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
@@ -545,61 +548,69 @@
                         });
                     });
 
-                    // 온점형태 문장 안전 분할
-                    let splitReadyText = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)\s+/g, "$1\u0007");
+                    // 문장 종결자 기준 정밀 1차 분할
+                    let splitReadyText = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)/g, "$1\u0007");
                     const sentences = splitReadyText.split('\u0007');
 
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // [새로운 논리엔진] 8글자 이하의 문장 뒤의 쉼표구분 스킵 알고리즘
-                        let subParts = [];
-                        let startIdx = 0;
+                        // [개선 완료] 토큰 스트림 기반 8글자 이하 쉼표 스킵 엔진
+                        let tokens = currentSentence.split(/([,、])/);
+                        let currentChunk = "";
 
-                        for (let idx = 0; idx < currentSentence.length; idx++) {
-                            const char = currentSentence[idx];
-                            if (char === ',' || char === '、') {
-                                const segmentBefore = currentSentence.substring(startIdx, idx);
-                                
-                                // 복원 후 실제 글자수 체크
-                                let restoredCheck = segmentBefore;
+                        for (let t = 0; t < tokens.length; t++) {
+                            let token = tokens[t];
+                            if (token === ',' || token === '、') {
+                                // 임시 가상 글자 복원 후 순수 유효 글자수 계산
+                                let checkStr = currentChunk;
                                 for (let k = 0; k < quotesAndBrackets.length; k++) {
-                                    restoredCheck = restoredCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                    checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                                 }
-                                restoredCheck = restoredCheck.replace(/\u0001/g, ',').replace(/\u0003/g, '、').trim();
+                                checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').trim();
 
-                                // 8글자 이하(<=8)는 무시하고, 9글자 이상(>8)일 때만 분할 처리
-                                if (restoredCheck.length > 8) {
-                                    subParts.push(currentSentence.substring(startIdx, idx + 1));
-                                    startIdx = idx + 1;
+                                // 순수 글자수가 8글자를 초과할 때만 분할 확정
+                                if (checkStr.length > 8) {
+                                    currentChunk += token;
+                                    
+                                    let finalChunk = currentChunk;
+                                    for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                        finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                    }
+                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.');
+                                    finalChunk = finalChunk.replace(/\s+/g, " ").trim();
+
+                                    if (finalChunk) {
+                                        intermediateLines.push({ text: finalChunk, isSpecial: false });
+                                    }
+                                    currentChunk = ""; 
+                                } else {
+                                    // 8글자 이하 단문 구절이면 분할하지 않고 그냥 이어 붙임
+                                    currentChunk += token;
                                 }
+                            } else {
+                                currentChunk += token;
                             }
                         }
-                        
-                        if (startIdx < currentSentence.length) {
-                            subParts.push(currentSentence.substring(startIdx));
-                        }
 
-                        subParts.forEach(part => {
-                            let chunk = part.trim();
-                            if (chunk) {
-                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                    chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                }
-                                chunk = chunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
-                                chunk = chunk.replace(/\s+/g, " ").trim();
-
-                                if (chunk) {
-                                    intermediateLines.push({ text: chunk, isSpecial: false });
-                                }
+                        if (currentChunk.trim()) {
+                            let finalChunk = currentChunk;
+                            for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                             }
-                        });
+                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.');
+                            finalChunk = finalChunk.replace(/\s+/g, " ").trim();
+
+                            if (finalChunk) {
+                                intermediateLines.push({ text: finalChunk, isSpecial: false });
+                            }
+                        }
                     });
                 }
             });
 
-            // 2단계: 대용량 안전 분할 및 번역 결과 누락 감지 비상제동(Fail-Safe) 레이어
+            // 2단계: 일본어 번역 누락 차단 비상제동(Fail-Safe) 레이어
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
@@ -622,7 +633,6 @@
                         const translatedChunk = await translateLine(currentChunkText);
                         const translatedSplit = translatedChunk.split('\n');
 
-                        // 번역 유실/합쳐짐 검증 장치 (줄 수 일치 여부 판정)
                         if (translatedSplit.length === chunkIndices.length) {
                             chunkIndices.forEach((origIdx, chunkSubIdx) => {
                                 if (translatedSplit[chunkSubIdx]) {
@@ -630,11 +640,11 @@
                                 }
                             });
                         } else {
-                            // 줄 바꿈 개수 매칭이 어긋날 경우 한 줄씩 정밀 안전 재번역 모드로 실시간 긴급 우회
+                            // 문장 개수 어긋남 감지 시 한 줄씩 정밀 재번역 모드로 즉시 우회
                             for (let cIdx of chunkIndices) {
                                 const singleRes = await translateLine(intermediateLines[cIdx].text);
                                 intermediateLines[cIdx].text = singleRes.trim();
-                                await sleep(40);
+                                await sleep(100);
                             }
                         }
 
@@ -654,7 +664,7 @@
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
-            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
+            // 3단계: UI 출력 블록 생성 및 하이라이트 스타일링
             const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
