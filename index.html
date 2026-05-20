@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>논단군 스크립트 정리</title>
@@ -159,11 +157,17 @@
             margin-bottom: 14px;
         }
 
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
         .translate-option-box {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 14px;
             font-size: 0.85rem;
             color: var(--text-main);
             cursor: pointer;
@@ -324,10 +328,16 @@
 
         <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
         
-        <label class="translate-option-box">
-            <input type="checkbox" id="jpTranslateOpt">
-            <span>일본어 번역</span>
-        </label>
+        <div class="options-group">
+            <label class="translate-option-box">
+                <input type="checkbox" id="pdfModeOpt">
+                <span>PDF 줄바꿈 보정</span>
+            </label>
+            <label class="translate-option-box">
+                <input type="checkbox" id="jpTranslateOpt">
+                <span>일본어 번역</span>
+            </label>
+        </div>
 
         <div class="btn-group">
             <button id="clearBtn" class="notion-btn btn-clear">초기화</button>
@@ -341,9 +351,7 @@
             <button id="copyAllBtn" class="notion-btn" style="padding: 6px 12px; font-size: 0.8rem;">전체 복사</button>
         </div>
         
-        <div id="resultContainer">
-            <div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>
-        </div>
+        <div id="resultContainer"><div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div></div>
     </div>
 
     <script>
@@ -359,7 +367,6 @@
 
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // 구글 번역 연동 API 래퍼 함수
         async function translateTextChunk(text) {
             if (!text.trim()) return text;
             try {
@@ -378,7 +385,6 @@
             }
         }
 
-        // 한국어 받침 판정 (조사 교정용)
         function hasBatchim(word) {
             if (!word) return false;
             const lastChar = word.charCodeAt(word.length - 1);
@@ -386,29 +392,29 @@
             return (lastChar - 0xAC00) % 28 !== 0;
         }
 
-        // 이름 변환 후 조사가 깨지는 현상 교정 함수
         function fixKoreanJosa(text, name) {
             if (!name) return text;
             const batchim = hasBatchim(name);
+            
             const josaPairs = [
-                { pattern: /(이|가)/g, yes: '이', no: '가' },
-                { pattern: /(은|는)/g, yes: '은', no: '는' },
-                { pattern: /(을|를)/g, yes: '을', no: '를' },
-                { pattern: /(과|와)/g, yes: '과', no: '와' },
-                { pattern: /(랑|이랑)/g, yes: '이랑', no: '랑' },
-                { pattern: /(으로|로)/g, yes: '으로', no: '로' }
+                { pattern: /(?:\(이\)?가|이\(가\)|이\/가|이|가)/, yes: '이', no: '가' },
+                { pattern: /(?:\(은\)?는|은\(는\)|은\/는|은|는)/, yes: '은', no: '는' },
+                { pattern: /(?:\(을\)?를|을\(를\)|을\/를|을|를)/, yes: '을', no: '를' },
+                { pattern: /(?:\(과\)?와|과\(와\)|과\/와|과|와)/, yes: '과', no: '와' },
+                { pattern: /(?:\(이\)?랑|이\(랑\)|이\/랑|이랑|랑)/, yes: '이랑', no: '랑' },
+                { pattern: /(?:\(으\)?로|으\(로\)|으\/로|으로|로)/, yes: '으로', no: '로' }
             ];
+            
             let fixed = text;
             josaPairs.forEach(pair => {
                 const escapedName = name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                const regex = new RegExp(escapedName + pair.pattern.source, 'g');
+                const regex = new RegExp(escapedName + '\\s*' + pair.pattern.source, 'g');
                 fixed = fixed.replace(regex, () => name + (batchim ? pair.yes : pair.no));
             });
             return fixed;
         }
 
-        // PDF 임의 줄바꿈 제거 최적화 함수
-        function preprocessPDFText(text) {
+        function preprocessText(text, usePdfMode) {
             let rawLines = text.split('\n');
             const processedLines = [];
             let buffer = "";
@@ -417,7 +423,6 @@
                 let current = line.trim();
                 if (!current) return;
 
-                // 특수 키워드 보호 레이어 (줄바꿈 결합 제외)
                 const isSpecial = /키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(current);
 
                 if (isSpecial) {
@@ -429,16 +434,20 @@
                     return;
                 }
 
-                if (buffer) {
-                    const isEnd = /[.!??”’)\]지역｣』。．]$/.test(buffer.slice(-1));
-                    if (!isEnd) {
-                        buffer += " " + current; // 문장 종결 기호가 아니면 이어 붙이기
+                if (usePdfMode) {
+                    if (buffer) {
+                        const isEnd = /[.!??”’)\]지역｣』。．]$/.test(buffer.slice(-1));
+                        if (!isEnd) {
+                            buffer += current; 
+                        } else {
+                            processedLines.push(buffer.trim());
+                            buffer = current;
+                        }
                     } else {
-                        processedLines.push(buffer.trim());
                         buffer = current;
                     }
                 } else {
-                    buffer = current;
+                    processedLines.push(current);
                 }
             });
 
@@ -449,17 +458,28 @@
         document.getElementById('clearBtn').addEventListener('click', function() {
             document.getElementById('rawScript').value = '';
             document.getElementById('jpTranslateOpt').checked = false;
+            document.getElementById('pdfModeOpt').checked = false;
+            
+            document.getElementById('kpcInput').value = '';
+            document.getElementById('pcInput').value = '';
+            document.getElementById('ch1Input').value = '';
+            document.getElementById('ch2Input').value = '';
+            document.getElementById('ch3Input').value = '';
+            document.getElementById('ch4Input').value = '';
+            
+            document.getElementById('resultContainer').innerHTML = '<div style="color: var(--text-muted); padding: 15px 0; font-size: 0.9rem;">변환된 텍스트가 없습니다.</div>';
         });
 
         document.getElementById('submitBtn').addEventListener('click', async function() {
             const rawScript = document.getElementById('rawScript').value;
             const container = document.getElementById('resultContainer');
             const isJpMode = document.getElementById('jpTranslateOpt').checked;
+            const usePdfMode = document.getElementById('pdfModeOpt').checked;
             
             if (!rawScript.trim()) return;
             container.innerHTML = '<div class="loading-text" id="loadingProgress">스크립트 변환 중...</div>';
 
-            // [1단계] 이름 대치 엔진 및 조사 교정 실행
+            // [1단계] 이름 및 조사 교정
             let preProcessedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -479,12 +499,12 @@
                 });
             }
 
-            // [2단계] PDF 최적화 전처리 엔진 통과
-            let restoredText = preprocessPDFText(preProcessedText);
+            // [2단계] 최적화 전처리
+            let restoredText = preprocessText(preProcessedText, usePdfMode);
             const intermediateLines = [];
             const restoredLines = restoredText.split('\n');
 
-            // [3단계] 정밀 문장 기호 보호막 및 분할 토큰 스트림 엔진
+            // [3단계] 정밀 특수기호 보호 및 규칙 기반 분할 토큰 스트림 엔진
             restoredLines.forEach(line => {
                 let trimmed = line.trim();
                 if (!trimmed) return;
@@ -492,55 +512,68 @@
                 if (/키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(trimmed)) {
                     intermediateLines.push({ text: trimmed.replace(/\s+/g, " "), isSpecial: true });
                 } else {
-                    // 숫자 뒤 마침표(예: 1., 2.) 완벽 보호 조치 (\u0004 기호로 일시 우회)
+                    // 숫자의 소수점 임시 보호
                     let protectedText = trimmed.replace(/(\d+)\./g, '$1\u0004');
                     
-                    // 대화 내용 및 대괄호/괄호 안 쉼표 보호 처리
+                    // 요구사항: ‘’“”[]<> 및 기존 대괄호/인용 부호 보호 레이어
                     const quotes = [];
-                    const patterns = [ /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g, /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g ];
+                    const patterns = [
+                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
+                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g,
+                        /「[^」]*」/g, /『[^』]*』/g, /<[^>]*>/g
+                    ];
+                    
                     patterns.forEach(pattern => {
                         protectedText = protectedText.replace(pattern, (match) => {
-                            const safe = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
+                            // 보호막 기호 내부의 마침표와 쉼표를 대체하여 분리를 완전 차단
+                            const safe = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003').replace(/\./g, '\u0005');
                             quotes.push(safe);
                             return `\u0002_${quotes.length - 1}_\u0002`;
                         });
                     });
 
-                    // 온점/느낌표/물음표 문장 종결자 기준 1차 분산 분할
-                    let sentences = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)/g, "$1\u0007").split('\u0007');
+                    // 요구사항: 마침표+특수문자 조합(보호된 인덱스 바로 앞 마침표) 처리 기믹 구성 후 문장 종결 분할
+                    // 종결자 분할 시 마침표 바로 뒤에 보호 기호가 연결되면 한 덩어리로 묶어서 분할 기점으로 설정
+                    let sentences = protectedText.replace(/([.!?。．…⋯]+(?:\u0002_\d+_\u0002)?)/g, "$1\u0007").split('\u0007');
 
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // 토큰 스트림 기반 단문(8글자 이하) 쉼표 분리 스킵 처리
+                        // 쉼표 분할 스트림 파서
                         let tokens = currentSentence.split(/([,、])/);
                         let currentChunk = "";
                         let segmentToCheck = "";
 
                         for (let t = 0; t < tokens.length; t++) {
                             let token = tokens[t];
+                            if (!token) continue;
+
                             if (token === ',' || token === '、') {
-                                // 현재 진행 중인 쉼표 앞 구절의 가상 글자 복원 후 순수 글자 수 계산
+                                // 임시 보호막 복원 후 글자 수 계산
                                 let checkStr = segmentToCheck;
                                 for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').trim();
+                                checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
 
-                                currentChunk += token;
-                                
-                                // 순수 단문 구절 글자 수가 8글자를 초과할 때만 안전 분리 확정
-                                if (checkStr.length > 8) {
+                                // 다음 남은 문자열 토큰의 실질 글자 수 복원 예측 계산 (우측 8글자 룰 검증)
+                                let nextStr = tokens.slice(t + 1).join("");
+                                for (let k = 0; k < quotes.length; k++) nextStr = nextStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                nextStr = nextStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
+
+                                // 요구사항: 앞뒤 여덟글자 준수 검증
+                                if (checkStr.length >= 8 && nextStr.length >= 8) {
                                     let finalChunk = currentChunk;
                                     for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\s+/g, " ").trim();
+                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
                                     
-                                    if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
-                                    
+                                    if (finalChunk) {
+                                        // 잘려 나갈 때 쉼표 원본 기호를 끝에 유지 결합
+                                        intermediateLines.push({ text: finalChunk + token, isSpecial: false });
+                                    }
                                     currentChunk = "";
                                     segmentToCheck = "";
                                 } else {
-                                    // 8글자 이하 단문 구절이면 다음 구절과 병합, 단 순수 글자 수 계산 버퍼는 리셋
-                                    segmentToCheck = "";
+                                    currentChunk += token;
                                 }
                             } else {
                                 currentChunk += token;
@@ -548,66 +581,68 @@
                             }
                         }
 
-                        // 스트림에 남아있는 최종 잔여 조각 마감 처리
                         if (currentChunk.trim()) {
                             let finalChunk = currentChunk;
                             for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\s+/g, " ").trim();
+                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
                             if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
                         }
                     });
                 }
             });
 
-            // [4단계] 일본어 고정 번역 및 텍스트 누락 방지 안정 제동(Fail-Safe) 레이어
+            // [4단계] 초장문 데이터 가속 분할 번역 엔진 (Fail-Safe 개편 최적화)
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
                 
-                let currentChunkText = "";
-                let chunkIndices = [];
-                const SAFE_LIMIT = 1200; 
-                const SEPARATOR = " ▣ "; // 매칭 데이터 유실 차단 목적용 번역 특수 구분자
-
-                for (let i = 0; i < totalLines; i++) {
-                    const lineText = intermediateLines[i].text;
+                const SAFE_LIMIT = 500; 
+                const SEPARATOR = " ▣ ";
+                
+                let i = 0;
+                while (i < totalLines) {
+                    let currentChunkText = "";
+                    let chunkIndices = [];
                     
-                    if ((currentChunkText.length + lineText.length > SAFE_LIMIT && currentChunkText.length > 0) || i === totalLines - 1) {
-                        if (i === totalLines - 1) {
-                            currentChunkText += (currentChunkText ? SEPARATOR : "") + lineText;
-                            chunkIndices.push(i);
+                    loadingTextEl.innerText = `대용량 번역 동기화 가속 중... (${i} / ${totalLines})`;
+                    
+                    while (i < totalLines) {
+                        let lineText = intermediateLines[i].text;
+                        if (currentChunkText.length + lineText.length + SEPARATOR.length > SAFE_LIMIT && currentChunkText.length > 0) {
+                            break;
                         }
-
-                        loadingTextEl.innerText = `번역 데이터 처리 중... (${i + 1} / ${totalLines})`;
-
-                        const translatedChunk = await translateTextChunk(currentChunkText);
-                        const translatedSplit = translatedChunk.split(/▣/g).map(s => s.trim());
-
-                        if (translatedSplit.length === chunkIndices.length) {
-                            chunkIndices.forEach((origIdx, chunkSubIdx) => {
-                                if (translatedSplit[chunkSubIdx]) intermediateLines[origIdx].text = translatedSplit[chunkSubIdx];
-                            });
-                        } else {
-                            // 문장 개수가 다를 경우 개별 라인 정밀 재번역 레이어로 긴급 자동 우회
-                            for (let cIdx of chunkIndices) {
-                                intermediateLines[cIdx].text = await translateTextChunk(intermediateLines[cIdx].text);
-                                await sleep(50);
-                            }
-                        }
-
-                        currentChunkText = "";
-                        chunkIndices = [];
-                        await sleep(200); 
-                    }
-
-                    if (i < totalLines - 1) {
                         currentChunkText += (currentChunkText ? SEPARATOR : "") + lineText;
                         chunkIndices.push(i);
+                        i++;
+                    }
+                    
+                    if (currentChunkText.trim()) {
+                        try {
+                            const translatedChunk = await translateTextChunk(currentChunkText);
+                            const translatedSplit = translatedChunk.split(/▣/g).map(s => s.trim());
+                            
+                            if (translatedSplit.length === chunkIndices.length) {
+                                chunkIndices.forEach((origIdx, subIdx) => {
+                                    if (translatedSplit[subIdx]) intermediateLines[origIdx].text = translatedSplit[subIdx];
+                                });
+                            } else {
+                                for (let cIdx of chunkIndices) {
+                                    intermediateLines[cIdx].text = await translateTextChunk(intermediateLines[cIdx].text);
+                                    await sleep(20);
+                                }
+                            }
+                        } catch (err) {
+                            for (let cIdx of chunkIndices) {
+                                intermediateLines[cIdx].text = await translateTextChunk(intermediateLines[cIdx].text);
+                                await sleep(20);
+                            }
+                        }
+                        await sleep(50); 
                     }
                 }
             }
 
-            // 후처리 공백 조사 흡수 
+            // 후처리 공백 조사 흡수
             intermediateLines.forEach(item => {
                 item.text = item.text.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
             });
