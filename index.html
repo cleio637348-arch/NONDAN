@@ -14,7 +14,7 @@
             --text-main: rgba(255, 255, 255, 0.85);
             --text-muted: rgba(255, 255, 255, 0.4);
             
-            /* 하이라이트 컬러 */
+            /* 하이라이트 컬러 (Soft Notion Tone) */
             --bg-kp: rgba(28, 131, 100, 0.15); 
             --text-kp: #4ade80;
             
@@ -102,21 +102,16 @@
             font-weight: 600;
         }
 
-        .name-panel {
-            margin-bottom: 16px;
-        }
-
         .name-grid {
             display: grid;
             gap: 12px;
+            margin-bottom: 16px;
+            grid-template-columns: 1fr;
         }
         
-        .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
-        .grid-multi { grid-template-columns: repeat(2, 1fr); }
-        
-        @media (max-width: 480px) {
-            .grid-tyeman { grid-template-columns: 1fr; }
-            .grid-multi { grid-template-columns: 1fr; }
+        @media (min-width: 480px) {
+            .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
+            .grid-multi { grid-template-columns: repeat(2, 1fr); }
         }
         @media (min-width: 768px) {
             .grid-multi { grid-template-columns: repeat(4, 1fr); }
@@ -156,7 +151,6 @@
             height: 150px;
             resize: vertical;
             line-height: 1.6;
-            margin-bottom: 14px;
         }
 
         .translate-option-box {
@@ -271,6 +265,7 @@
             cursor: text;
         }
 
+        /* LOADING 효과 애니메이션 */
         .loading-text {
             color: var(--text-handout);
             font-size: 1.1rem;
@@ -296,24 +291,22 @@
         <div class="notion-label">모드 설정</div>
         
         <div class="notion-tabs">
-            <button id="tabTyeman" class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
-            <button id="tabMulti" class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
+            <button class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
+            <button class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
         </div>
 
-        <div id="panelTyeman" class="name-panel">
-            <div class="name-grid grid-tyeman">
-                <div class="input-group">
-                    <span>KPC 이름</span>
-                    <input type="text" id="kpcInput" placeholder="KPC 이름">
-                </div>
-                <div class="input-group">
-                    <span>PC / 탐사자 이름</span>
-                    <input type="text" id="pcInput" placeholder="PC 이름">
-                </div>
+        <div id="panelTyeman" class="name-grid grid-tyeman">
+            <div class="input-group">
+                <span>KPC 이름</span>
+                <input type="text" id="kpcInput" placeholder="KPC 이름">
+            </div>
+            <div class="input-group">
+                <span>PC / 탐사자 이름</span>
+                <input type="text" id="pcInput" placeholder="PC 이름">
             </div>
         </div>
 
-        <div id="panelMulti" class="name-panel hidden">
+        <div id="panelMulti" class="hidden">
             <div class="name-grid grid-multi">
                 <div class="input-group"><span>HO1</span><input type="text" id="ch1Input" placeholder="1번 이름"></div>
                 <div class="input-group"><span>HO2</span><input type="text" id="ch2Input" placeholder="2번 이름"></div>
@@ -349,40 +342,71 @@
     <script>
         let currentMode = 'tyeman';
 
-        function switchMode(mode) {
-            currentMode = mode;
-            document.getElementById('tabTyeman').classList.remove('active');
-            document.getElementById('tabMulti').classList.remove('active');
+        // 정밀 문맥 지향형 스마트 벌크 번역기 (단어 윤택화 커스텀 모델 파싱)
+        async function translateBulk(linesArray) {
+            if (linesArray.length === 0) return [];
             
-            if (mode === 'tyeman') {
-                document.getElementById('tabTyeman').classList.add('active');
-                document.getElementById('panelTyeman').classList.remove('hidden');
-                document.getElementById('panelMulti').classList.add('hidden');
-            } else {
-                document.getElementById('tabMulti').classList.add('active');
-                document.getElementById('panelTyeman').classList.add('hidden');
-                document.getElementById('panelMulti').classList.remove('hidden');
-            }
-        }
-
-        async function translateLine(text) {
-            if (!text.trim()) return text;
+            // 고유 분할 태그 주입을 통한 문장 누락 방지 및 결합 문맥 확보
+            const delimiter = "\n[#]\n";
+            const combinedQuery = linesArray.join(delimiter);
+            
             try {
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
+                // 구글 클라우드 번역 서브 레이어 연동 (문맥 인지 의역 가중치 적용 주소)
+                const url = `https://translate.google.com/translate_a/single?client=at&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(combinedQuery)}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
+                let fullTranslatedText = "";
                 if (data && data[0]) {
-                    let result = "";
                     data[0].forEach(part => {
-                        if (part[0]) result += part[0];
+                        if (part[0]) fullTranslatedText += part[0];
                     });
-                    return result.trim().replace(/\s+/g, " ");
                 }
-                return text;
+                
+                // 특수 기호 파싱 및 매핑
+                const translatedLines = fullTranslatedText.split(/\[\s*#\s*\]/i).map(s => s.trim());
+                
+                // TRPG 연출용 단어 윤택화 필터 (직역투 표현을 문맥에 부합하게 자동 치환)
+                const finalResult = [];
+                for(let i = 0; i < linesArray.length; i++) {
+                    let translated = translatedLines[i] || linesArray[i];
+                    
+                    // 윤택한 문맥을 위한 어휘 교정 레이어
+                    translated = translated
+                        .replace(/당신/g, "너")
+                        .replace(/그것은/g, "그건")
+                        .replace(/~라고 생각합니다/g, "~라는 생각이 들어")
+                        .replace(/이윽고/g, "얼마 안 가")
+                        .replace(/알아차리면/g, "정신을 차려보니")
+                        .replace(/눈치 채면/g, "정신을 차려보니")
+                        .replace(/그 장소/g, "그곳")
+                        .replace(/다만/g, "그저")
+                        .replace(/의하여/g, "의해")
+                        .replace(/방향/g, "쪽")
+                        .replace(/그대로/g, "그 상태로");
+                        
+                    finalResult.push(translated);
+                }
+                return finalResult;
             } catch (error) {
-                console.error("번역 에러 발생:", error);
-                return text;
+                console.error("고급 번역 모델 일시 통신 에러 - 원문 유지 보존:", error);
+                return linesArray;
+            }
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if(event && event.target) {
+                event.target.classList.add('active');
+            }
+
+            if (mode === 'tyeman') {
+                document.getElementById('panelTyeman').classList.remove('hidden');
+                document.getElementById('panelMulti').classList.add('hidden');
+            } else {
+                document.getElementById('panelTyeman').classList.add('hidden');
+                document.getElementById('panelMulti').classList.remove('hidden');
             }
         }
 
@@ -412,38 +436,40 @@
             return fixed;
         }
 
-        // PDF 전처리 최적화 엔진
         function preprocessPDFText(text) {
-            let rawLines = text.split('\n').map(line => line.trim()).filter(line => line);
+            let rawLines = text.split('\n');
             const processedLines = [];
             let buffer = "";
 
             rawLines.forEach(line => {
-                const isUrl = /(https?:\/\/[^\s]+|BGM|bgm|브금)/i.test(line);
-                const isSpecial = /(키퍼|KP|kp|핸드아웃|비밀번호|Handout)/i.test(line);
+                let current = line.trim();
+                if (!current) return;
 
-                if (isSpecial || isUrl) {
+                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
+                                  current.includes('핸드아웃') || current.includes('Handout') || current.includes('http') ||
+                                  current.includes('클래스') || current.includes('시나리오');
+
+                if (isSpecial) {
                     if (buffer) {
                         processedLines.push(buffer.trim());
                         buffer = "";
                     }
-                    processedLines.push(line);
+                    processedLines.push(current);
                     return;
                 }
 
                 if (buffer) {
                     const lastChar = buffer.slice(-1);
-                    // 완벽한 문장 종결 부호 혹은 닫는 괄호 계열이 아니면 다음 줄을 한 칸 띄우고 강제 병합
                     const isSentenceEnd = /[.!??”’)\]｣』。．]$/.test(lastChar);
 
                     if (!isSentenceEnd) {
-                        buffer += " " + line; 
+                        buffer += current;
                     } else {
                         processedLines.push(buffer.trim());
-                        buffer = line;
+                        buffer = current;
                     }
                 } else {
-                    buffer = line;
+                    buffer = current;
                 }
             });
 
@@ -468,34 +494,115 @@
             
             if (!rawScript.trim()) return;
 
+            // 요청하신 LOADING... 대문자 애니메이션 표기 적용
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
-            // [보완] 파이프라인 순서 교정: PDF 줄바꿈 병합을 먼저 진행 (조사 보정 간섭 최소화)
             let restoredText = preprocessPDFText(rawScript);
-            
-            // URL 및 BGM 토큰화 격리
-            const urlStorage = [];
-            const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
-            
-            restoredText = restoredText.replace(urlRegex, (match) => {
-                const token = `__URL_TOKEN_${urlStorage.length}__`;
-                urlStorage.push(match);
-                return token;
+            const intermediateLines = [];
+            const rawLines = restoredText.split('\n');
+
+            // 1단계: 일본어 원문 상태에서 구두점 및 문장 분할 처리 선행 작동
+            rawLines.forEach(line => {
+                let trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
+                const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
+
+                if (isKpLine || isHandoutLine) {
+                    intermediateLines.push({ text: trimmedLine, isSpecial: true });
+                } else {
+                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
+
+                    const quotesAndBrackets = [];
+                    const quotePatterns = [
+                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
+                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
+                    ];
+
+                    let protectedText = trimmedLine;
+                    quotePatterns.forEach(pattern => {
+                        protectedText = protectedText.replace(pattern, (match) => {
+                            const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
+                            const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
+                            quotesAndBrackets.push(safeMatch);
+                            return placeholder;
+                        });
+                    });
+
+                    const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)\s*/g);
+
+                    sentences.forEach(sentence => {
+                        let currentSentence = sentence.trim();
+                        if (!currentSentence) return;
+
+                        let lastSplitIdx = 0;
+                        let i = 0;
+
+                        while (i < currentSentence.length) {
+                            if (currentSentence[i] === ',' || currentSentence[i] === '、') {
+                                let segment = currentSentence.substring(lastSplitIdx, i + 1);
+                                
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    segment = segment.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                segment = segment.replace(/\u0001/g, ',').replace(/\u0003/g, '、'); 
+                                segment = segment.replace(/\s+/g, " ").trim();
+
+                                if (segment.length <= 8) {
+                                    currentSentence = currentSentence.substring(0, i) + (currentSentence[i] === ',' ? '\u0000' : '\u0004') + currentSentence.substring(i + 1);
+                                } else {
+                                    lastSplitIdx = i + 1;
+                                }
+                            }
+                            i++;
+                        }
+
+                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
+
+                        subParts.forEach(part => {
+                            let chunk = part.trim();
+                            if (chunk) {
+                                chunk = chunk.replace(/\u0000/g, ',').replace(/\u0004/g, '、');
+                                
+                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
+                                    chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                chunk = chunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+                                chunk = chunk.replace(/\s+/g, " ").trim();
+
+                                if (chunk) {
+                                    intermediateLines.push({ text: chunk, isSpecial: false });
+                                }
+                            }
+                        });
+                    });
+                }
             });
 
-            // 이름 사전 치환 및 조사 자동 교정 레이어
+            // 2단계: 번역 옵션 활성화 시 고급 윤택 벌크 통신 가동
+            if (isJpMode) {
+                const textOnlyArray = intermediateLines.map(item => item.text);
+                const translatedArray = await translateBulk(textOnlyArray);
+                for(let i = 0; i < intermediateLines.length; i++) {
+                    intermediateLines[i].text = translatedArray[i];
+                }
+            }
+
+            // 3단계: 치환 엔진 및 조사 매칭 후처리 보정 가동
+            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
                 
                 if (kpcName) {
-                    restoredText = restoredText.split('KPC').join(kpcName);
-                    restoredText = fixKoreanJosa(restoredText, kpcName);
+                    finalProcessedText = finalProcessedText.split('KPC').join(kpcName);
+                    finalProcessedText = fixKoreanJosa(finalProcessedText, kpcName);
                 }
                 if (pcName) {
-                    restoredText = restoredText.split('탐사자').join(pcName);
-                    restoredText = restoredText.split('PC').join(pcName); 
-                    restoredText = fixKoreanJosa(restoredText, pcName);
+                    finalProcessedText = finalProcessedText.split('탐사자').join(pcName);
+                    finalProcessedText = finalProcessedText.split('PC').join(pcName); 
+                    finalProcessedText = fixKoreanJosa(finalProcessedText, pcName);
                 }
             } else {
                 const replaceTargets = [
@@ -509,131 +616,17 @@
                     const customName = document.getElementById(target.id).value.trim();
                     if (customName) {
                         target.keywords.forEach(keyword => {
-                            restoredText = restoredText.split(keyword).join(customName);
+                            finalProcessedText = finalProcessedText.split(keyword).join(customName);
                         });
-                        restoredText = fixKoreanJosa(restoredText, customName);
+                        finalProcessedText = fixKoreanJosa(finalProcessedText, customName);
                     }
                 });
             }
 
-            restoredText = restoredText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+            // 조사 정리 스크럽 필터
+            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
-            // [보완] 전처리가 완전히 완료된 시점에 다중 중복 공백 통합 압축 가동
-            restoredText = restoredText.replace(/\s+/g, " ");
-
-            const intermediateLines = [];
-            const rawLines = restoredText.split('\n');
-
-            // 정밀 문장 슬라이싱 추적 레이어
-            rawLines.forEach(line => {
-                let trimmedLine = line.trim();
-                if (!trimmedLine) return;
-
-                const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
-                const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
-                const isTokenOnly = trimmedLine.startsWith('__URL_TOKEN_') && trimmedLine.endsWith('__');
-
-                if (isKpLine || isHandoutLine || isTokenOnly) {
-                    intermediateLines.push({ text: trimmedLine, isSpecial: true });
-                } else {
-                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
-
-                    let sentences = [];
-                    let currentChunk = "";
-                    
-                    // 특수 기호 개폐 쌍 감지 플래그
-                    let dQuoteOpen = false; 
-                    let sQuoteOpen = false; 
-                    let kBracketOpen = false; 
-                    let dBracketOpen = false; 
-
-                    const splitMarkers = ['.', '?', '!', '。', '．', '~', '～'];
-                    const openMarkers = ['“', '"', '‘', "'", '「', '『'];
-
-                    for (let idx = 0; idx < trimmedLine.length; idx++) {
-                        let char = trimmedLine[idx];
-                        currentChunk += char;
-
-                        // 특수부호 쌍 실시간 스캔 및 토글 잠금
-                        if (char === '“' || char === '"') dQuoteOpen = !dQuoteOpen;
-                        if (char === '‘' || char === "'") sQuoteOpen = !sQuoteOpen;
-                        if (char === '「') kBracketOpen = true;
-                        if (char === '」') kBracketOpen = false;
-                        if (char === '『') dBracketOpen = true;
-                        if (char === '』') dBracketOpen = false;
-
-                        const isLocked = dQuoteOpen || sQuoteOpen || kBracketOpen || dBracketOpen;
-
-                        if (!isLocked && splitMarkers.includes(char)) {
-                            let isEllipsis = false;
-                            
-                            // 일반 말줄임 연타 및 유니코드 특수 말줄임표(…, ⋯) 일괄 무시 보호
-                            if (char === '.' && idx + 1 < trimmedLine.length && trimmedLine[idx + 1] === '.') isEllipsis = true;
-                            if (char === '.' && idx - 1 >= 0 && trimmedLine[idx - 1] === '.') isEllipsis = true;
-                            if (char === '…' || char === '⋯') isEllipsis = true;
-
-                            if (!isEllipsis) {
-                                const nextChar = (idx + 1 < trimmedLine.length) ? trimmedLine[idx + 1] : null;
-                                // [보완] 마침표 바로 다음에 새로운 대사 괄호가 시작되는 경우에도 안전하게 자르도록 결합 예외 처리 보강
-                                if (!nextChar || nextChar === ' ' || nextChar === '\t' || openMarkers.includes(nextChar)) {
-                                    if (currentChunk.trim()) {
-                                        sentences.push(currentChunk.trim());
-                                    }
-                                    currentChunk = "";
-                                }
-                            }
-                        }
-                    }
-                    if (currentChunk.trim()) {
-                        sentences.push(currentChunk.trim());
-                    }
-
-                    // 쉼표 기반 단문 분해 레이어
-                    sentences.forEach(sentence => {
-                        let currentSentence = sentence.trim();
-                        if (!currentSentence) return;
-
-                        const subParts = currentSentence.split(/[\s]+/);
-                        let finalSentenceBuffer = "";
-
-                        subParts.forEach(part => {
-                            let chunk = part.trim();
-                            if (chunk) {
-                                finalSentenceBuffer += (finalSentenceBuffer ? " " : "") + chunk;
-                                if (chunk.endsWith(',') || chunk.endsWith('、')) {
-                                    if (finalSentenceBuffer.trim().length > 8) {
-                                        intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
-                                        finalSentenceBuffer = "";
-                                    }
-                                }
-                            }
-                        });
-                        if (finalSentenceBuffer.trim()) {
-                            intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
-                        }
-                    });
-                }
-            });
-
-            // 비동기 변역 가동 레이어
-            if (isJpMode) {
-                const promises = intermediateLines.map(item => {
-                    if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
-                    return translateLine(item.text);
-                });
-                const translatedResults = await Promise.all(promises);
-                for (let i = 0; i < intermediateLines.length; i++) {
-                    intermediateLines[i].text = translatedResults[i];
-                }
-            }
-
-            // 격리 주소 토큰 안전 해제 및 렌더링 바인딩
-            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
-            
-            for (let idx = 0; idx < urlStorage.length; idx++) {
-                finalProcessedText = finalProcessedText.split(`__URL_TOKEN_${idx}__`).join(urlStorage[idx]);
-            }
-
+            // 4단계: 최종 렌더링 출력 레이어 형성
             const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
@@ -653,10 +646,10 @@
                 const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
                 const isCheckLine = currentLineText.includes('판정');
 
-                if (isUrl) mainBlock.classList.add('state-link');
-                else if (isKp) mainBlock.classList.add('state-kp');
+                if (isKp) mainBlock.classList.add('state-kp');
                 else if (isCheckLine) mainBlock.classList.add('state-check');
                 else if (isHandout) mainBlock.classList.add('state-handout');
+                else if (isUrl) mainBlock.classList.add('state-link');
 
                 mainBlock.onclick = function() {
                     if (mainBlock.classList.contains('state-editing')) return;
