@@ -249,7 +249,6 @@
             margin-bottom: 16px;
         }
 
-        /* 링크 추출 패널 토글화 스타일 개편 */
         .toggle-summary {
             display: flex;
             align-items: center;
@@ -426,15 +425,19 @@
                 <span>일본어 번역</span>
             </label>
             <label class="translate-option-box">
+                <input type="checkbox" id="splitCommaOpt" 
+                <span>쉼표 단위 문장 분리</span>
+            </label>
+            <label class="translate-option-box">
                 <input type="checkbox" id="descModeOpt">
                 <span>/desc 추가</span>
             </label>
             <label class="translate-option-box">
-                <input type="checkbox" id="extractLinkOpt" checked>
+                <input type="checkbox" id="extractLinkOpt" 
                 <span>세션 링크 별도 추출</span>
             </label>
             <label class="translate-option-box">
-                <input type="checkbox" id="calcStatsOpt" checked>
+                <input type="checkbox" id="calcStatsOpt" 
                 <span>실시간 세션 인포계산</span>
             </label>
         </div>
@@ -555,7 +558,6 @@
 
         // 엔터 무결성 강화 파서
         function preprocessText(text, usePdfMode) {
-            // [기능 추가] 세 개 이상의 엔터(\n\n\n+)를 과감히 잘라내어 최대 두 개의 엔터(\n\n)만 남김
             let normalNewlineText = text.replace(/\r?\n/g, '\n');
             normalNewlineText = normalNewlineText.replace(/\n{3,}/g, '\n\n');
 
@@ -566,7 +568,6 @@
             rawLines.forEach(line => {
                 let current = line.trim();
                 
-                // 원본 빈 줄 구조 보존
                 if (!current) {
                     if (buffer) {
                         processedLines.push(buffer.trim());
@@ -617,6 +618,7 @@
             document.getElementById('jpTranslateOpt').checked = false;
             document.getElementById('pdfModeOpt').checked = false;
             document.getElementById('descModeOpt').checked = false;
+            document.getElementById('splitCommaOpt').checked = true;
             
             document.getElementById('kpcInput').value = '';
             document.getElementById('pcInput').value = '';
@@ -638,6 +640,7 @@
             const useDescMode = document.getElementById('descModeOpt').checked;
             const useExtractLink = document.getElementById('extractLinkOpt').checked;
             const useCalcStats = document.getElementById('calcStatsOpt').checked;
+            const useSplitComma = document.getElementById('splitCommaOpt').checked;
             
             if (!rawScript.trim()) return;
             container.innerHTML = '<div class="loading-text" id="loadingProgress">스크립트 변환 중...</div>';
@@ -671,7 +674,6 @@
             restoredLines.forEach(line => {
                 let trimmed = line.trim();
                 
-                // 빈 엔터 라인 데이터 무결성 보장
                 if (!trimmed) {
                     intermediateLines.push({ text: "", isSpecial: false, isBlank: true });
                     return;
@@ -680,7 +682,6 @@
                 if (/키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(trimmed)) {
                     intermediateLines.push({ text: trimmed.replace(/\s+/g, " "), isSpecial: true });
                 } else {
-                    // 요구사항 반영: 마침표+특수문자 조합 무조건 즉시 분절 강제 기믹
                     let puncSpecialEnforced = trimmed.replace(/([.!?。．…⋯]+['"”’\]\>」』\)])/g, "$1\u0008");
                     let puncSegments = puncSpecialEnforced.split('\u0008');
 
@@ -711,45 +712,54 @@
                             let currentSentence = sentence.trim();
                             if (!currentSentence) return;
 
-                            let tokens = currentSentence.split(/([,、])/);
-                            let currentChunk = "";
-                            let segmentToCheck = "";
+                            // 쉼표 분리 옵션이 켜져 있을 때만 기존 로직 수행
+                            if (useSplitComma) {
+                                let tokens = currentSentence.split(/([,、])/);
+                                let currentChunk = "";
+                                let segmentToCheck = "";
 
-                            for (let t = 0; t < tokens.length; t++) {
-                                let token = tokens[t];
-                                if (!token) continue;
+                                for (let t = 0; t < tokens.length; t++) {
+                                    let token = tokens[t];
+                                    if (!token) continue;
 
-                                if (token === ',' || token === '、') {
-                                    let checkStr = segmentToCheck;
-                                    for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                    checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
+                                    if (token === ',' || token === '、') {
+                                        let checkStr = segmentToCheck;
+                                        for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                        checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
 
-                                    let nextStr = tokens.slice(t + 1).join("");
-                                    for (let k = 0; k < quotes.length; k++) nextStr = nextStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                    nextStr = nextStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
+                                        let nextStr = tokens.slice(t + 1).join("");
+                                        for (let k = 0; k < quotes.length; k++) nextStr = nextStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                        nextStr = nextStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').trim();
 
-                                    if (checkStr.length >= 8 && nextStr.length >= 8) {
-                                        let finalChunk = currentChunk;
-                                        for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
-                                        finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
-                                        
-                                        if (finalChunk) {
-                                            intermediateLines.push({ text: finalChunk + token, isSpecial: false });
+                                        if (checkStr.length >= 8 && nextStr.length >= 8) {
+                                            let finalChunk = currentChunk;
+                                            for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
+                                            
+                                            if (finalChunk) {
+                                                intermediateLines.push({ text: finalChunk + token, isSpecial: false });
+                                            }
+                                            currentChunk = "";
+                                            segmentToCheck = "";
+                                        } else {
+                                            currentChunk += token;
                                         }
-                                        currentChunk = "";
-                                        segmentToCheck = "";
+                                        segmentToCheck += token;
                                     } else {
                                         currentChunk += token;
+                                        segmentToCheck += token;
                                     }
-                                    segmentToCheck += token;
-                                } else {
-                                    currentChunk += token;
-                                    segmentToCheck += token;
                                 }
-                            }
 
-                            if (currentChunk.trim()) {
-                                let finalChunk = currentChunk;
+                                if (currentChunk.trim()) {
+                                    let finalChunk = currentChunk;
+                                    for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
+                                    if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
+                                }
+                            } else {
+                                // 쉼표 분리 옵션이 꺼져 있으면 특수 보호 문자만 원복 후 통째로 추가
+                                let finalChunk = currentSentence;
                                 for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
                                 finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\u0005/g, '.').replace(/\s+/g, " ").trim();
                                 if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
@@ -828,13 +838,11 @@
             const fragment = document.createDocumentFragment();
             let totalCharacterCount = 0;
 
-            // 출력단 속도 저하 및 UI 무너짐 방지를 위해 필터링된 연속 공백 라인 제어 기믹 적용
             let lastWasBlank = false;
 
             intermediateLines.forEach(item => {
-                // 엔터 공백 라인 렌더링
                 if (item.isBlank) {
-                    if (lastWasBlank) return; // 이미 공백 블록이 찍혔다면 중복 렌더링 방지
+                    if (lastWasBlank) return;
                     
                     const brWrapper = document.createElement('div');
                     brWrapper.className = 'notion-row';
@@ -855,7 +863,7 @@
                 let lineText = item.text.replace(/\s+/g, " ").trim();
                 if (!lineText) return;
                 
-                lastWasBlank = false; // 글자가 나오면 공백 플래그 리셋
+                lastWasBlank = false;
 
                 const linksInLine = lineText.match(urlRegex);
                 if (linksInLine) {
@@ -918,7 +926,6 @@
             container.innerHTML = ''; 
             container.appendChild(fragment);
 
-            // 링크 대시보드 렌더링 및 동적 구축
             const linkCollectorCard = document.getElementById('linkCollectorCard');
             const linkContainer = document.getElementById('linkContainer');
             if (useExtractLink && extractedLinks.length > 0) {
@@ -949,7 +956,6 @@
                 linkCollectorCard.classList.add('hidden');
             }
 
-            // 인포 통계 배지
             const statsContainer = document.getElementById('statsContainer');
             if (useCalcStats && totalCharacterCount > 0) {
                 statsContainer.classList.remove('hidden');
