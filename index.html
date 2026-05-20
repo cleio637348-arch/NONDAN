@@ -2,8 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>논단군 스크립트 정리</title>
+    <title> 논단군 스크립트 정리 (Script Console)</title>
     <style>
         /* Notion Dark Mode Premium Theme */
         :root {
@@ -14,27 +13,27 @@
             --text-main: rgba(255, 255, 255, 0.85);
             --text-muted: rgba(255, 255, 255, 0.4);
             
-            /* 하이라이트 컬러 (Soft Notion Tone) */
-            --bg-kp: rgba(28, 131, 100, 0.15); 
+            /* 요청하신 색상 가이드 반영 (Soft Notion Tone) */
+            --bg-kp: rgba(28, 131, 100, 0.15); /* 초록 */
             --text-kp: #4ade80;
             
-            --bg-check: rgba(239, 68, 68, 0.15); 
+            --bg-check: rgba(239, 68, 68, 0.15); /* 빨간 */
             --text-check: #f87171;
             
-            --bg-handout: rgba(234, 179, 8, 0.12); 
+            --bg-handout: rgba(234, 179, 8, 0.12); /* 노란 */
             --text-handout: #fde047;
             
-            --bg-link: rgba(59, 130, 246, 0.15); 
+            --bg-link: rgba(59, 130, 246, 0.15); /* 파란 */
             --text-link: #60a5fa;
             
-            --bg-copied: rgba(46, 170, 220, 0.25);
+            --bg-copied: rgba(46, 170, 220, 0.15);
         }
 
         body {
             font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
-            padding: 40px 16px;
+            padding: 60px 20px;
             background-color: var(--bg-main);
             color: var(--text-main);
             -webkit-font-smoothing: antialiased;
@@ -42,11 +41,11 @@
         }
 
         header {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         header h1 {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
             color: rgba(255, 255, 255, 0.9);
             margin: 0 0 6px 0;
@@ -54,7 +53,7 @@
         }
 
         header p {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             margin: 0;
         }
@@ -63,37 +62,42 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-notion);
             border-radius: 6px;
-            padding: 18px;
-            margin-bottom: 20px;
+            padding: 26px;
+            margin-bottom: 24px;
         }
 
         .notion-label {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 600;
             letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             color: var(--text-muted);
         }
 
+        /* 미니멀 탭 메뉴 */
         .notion-tabs {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             border-bottom: 1px solid var(--border-notion);
-            margin-bottom: 18px;
-            padding-bottom: 4px;
+            margin-bottom: 22px;
+            padding-bottom: 6px;
         }
 
         .tab-btn {
             background: none;
             border: none;
             color: var(--text-muted);
-            padding: 8px 12px;
+            padding: 6px 14px;
             font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.1s ease;
-            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
         }
 
         .tab-btn.active {
@@ -102,24 +106,19 @@
             font-weight: 600;
         }
 
-        .name-panel {
-            margin-bottom: 16px;
-        }
-
+        /* 그리드 레이아웃 */
         .name-grid {
             display: grid;
-            gap: 12px;
+            gap: 14px;
+            margin-bottom: 18px;
         }
         
-        .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
-        .grid-multi { grid-template-columns: repeat(2, 1fr); }
-        
-        @media (max-width: 480px) {
-            .grid-tyeman { grid-template-columns: 1fr; }
-            .grid-multi { grid-template-columns: 1fr; }
+        .grid-tyeman {
+            grid-template-columns: repeat(2, 1fr);
         }
-        @media (min-width: 768px) {
-            .grid-multi { grid-template-columns: repeat(4, 1fr); }
+
+        .grid-multi {
+            grid-template-columns: repeat(4, 1fr);
         }
 
         .input-group {
@@ -145,201 +144,182 @@
             border-radius: 4px;
             color: var(--text-main);
             font-size: 0.9rem;
-            padding: 10px 12px;
+            padding: 10px 14px;
             box-sizing: border-box;
             outline: none;
             font-family: inherit;
-            -webkit-appearance: none;
+            transition: border 0.15s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: rgba(255, 255, 255, 0.18);
         }
 
         textarea {
-            height: 150px;
+            height: 180px;
             resize: vertical;
             line-height: 1.6;
-            margin-bottom: 14px;
-        }
-
-        .translate-option-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 14px;
-            font-size: 0.85rem;
-            color: var(--text-main);
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .translate-option-box input[type="checkbox"] {
-            accent-color: var(--text-kp);
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-
-        .btn-group {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 12px;
         }
 
         .notion-btn {
             background: none;
             border: 1px solid var(--border-notion);
             color: var(--text-main);
+            padding: 10px 18px;
             border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
             cursor: pointer;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: background 0.1s;
+            transition: background 0.12s ease;
+        }
+
+        .notion-btn:hover {
+            background: rgba(255, 255, 255, 0.04);
         }
 
         .btn-submit {
-            flex: 1;
+            width: 100%;
+            margin-top: 14px;
             background: rgba(255, 255, 255, 0.02);
             font-weight: 600;
-            padding: 12px;
-            font-size: 0.85rem;
+            border-color: rgba(255, 255, 255, 0.1);
         }
-
-        .btn-clear {
-            flex: none;
-            width: auto;
-            color: #f87171;
-            border-color: rgba(239, 68, 68, 0.15);
-            background: rgba(239, 68, 68, 0.03);
-            font-weight: 500;
-            padding: 12px 14px;
-            font-size: 0.85rem;
+        .btn-submit:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 22px;
         }
 
+        /* 세련된 노션 한 줄 블록 디자인 */
         .notion-row {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            padding-bottom: 2px;
+            align-items: stretch;
+            gap: 8px;
+            margin-bottom: 2px;
         }
 
         .notion-block {
             flex: 1;
-            padding: 10px 12px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.9rem;
-            line-height: 1.5;
+            line-height: 1.6;
             word-break: break-all;
             outline: none;
             color: var(--text-main);
-            -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s ease;
+        }
+        
+        .notion-block:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
-        .state-copied { background-color: var(--bg-copied) !important; }
-        .state-kp { background-color: var(--bg-kp); color: var(--text-kp); }
-        .state-check { background-color: var(--bg-check); color: var(--text-check); }
-        .state-handout { background-color: var(--bg-handout); color: var(--text-handout); }
-        .state-link { background-color: var(--bg-link); color: var(--text-link); }
+        /* 하이라이트 상태 클래스 */
+        .state-copied {
+            background-color: var(--bg-copied) !important;
+        }
 
+        .state-kp {
+            background-color: var(--bg-kp);
+            color: var(--text-kp);
+        }
+        .state-kp:hover { background-color: rgba(28, 131, 100, 0.22); }
+
+        .state-check {
+            background-color: var(--bg-check);
+            color: var(--text-check);
+        }
+        .state-check:hover { background-color: rgba(239, 68, 68, 0.22); }
+
+        .state-handout {
+            background-color: var(--bg-handout);
+            color: var(--text-handout);
+        }
+        .state-handout:hover { background-color: rgba(234, 179, 8, 0.18); }
+
+        .state-link {
+            background-color: var(--bg-link);
+            color: var(--text-link);
+        }
+        .state-link:hover { background-color: rgba(59, 130, 246, 0.22); }
+
+        /* 미니멀 컨트롤 버튼 */
         .row-control {
-            padding: 8px 10px;
-            border: 1px solid var(--border-notion);
-            background: rgba(255,255,255,0.02);
+            padding: 0 8px;
+            border: none;
+            background: transparent;
             color: var(--text-muted);
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.75rem;
-            white-space: nowrap;
-            -webkit-tap-highlight-color: transparent;
+            opacity: 0;
+            transition: opacity 0.1s ease, color 0.1s ease;
         }
-        
-        .control-edit { color: var(--text-link); }
-        .control-del { color: #f87171; }
+        .notion-row:hover .row-control {
+            opacity: 0.4;
+        }
+        .notion-row:hover .row-control:hover {
+            opacity: 1;
+        }
+        .control-edit:hover { color: var(--text-link); background: rgba(255,255,255,0.02); }
+        .control-del:hover { color: #f87171; background: rgba(248, 113, 113, 0.03); }
 
         .state-editing {
             background: #1c212c !important;
             box-shadow: inset 0 0 0 1px #529cca;
             cursor: text;
         }
-
-        /* LOADING 애니메이션 효과 */
-        .loading-text {
-            color: var(--text-handout);
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            padding: 30px 0;
-            text-align: center;
-            animation: blinker 1.2s linear infinite;
-        }
-        @keyframes blinker {
-            50% { opacity: 0.3; }
-        }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>논단군 스크립트 정리</h1>
-        <p>TRPG 텍스트 자동 정리 시스템</p>
+        <h1>스크립트 콘솔</h1>
+        <p>TRPG 텍스트 자동 변환 및 문장 분할 시스템</p>
     </header>
 
     <div class="notion-card">
-        <div class="notion-label">모드 설정</div>
+        <div class="notion-label">시나리오 엔진 설정</div>
         
         <div class="notion-tabs">
-            <button id="tabTyeman" class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
-            <button id="tabMulti" class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
+            <button class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드 (1:1)</button>
+            <button class="tab-btn" onclick="switchMode('multi')">다인 모드 (Multi)</button>
         </div>
 
-        <div id="panelTyeman" class="name-panel">
-            <div class="name-grid grid-tyeman">
-                <div class="input-group">
-                    <span>KPC 이름</span>
-                    <input type="text" id="kpcInput" placeholder="KPC 이름">
-                </div>
-                <div class="input-group">
-                    <span>PC / 탐사자 이름</span>
-                    <input type="text" id="pcInput" placeholder="PC 이름">
-                </div>
+        <div id="panelTyeman" class="name-grid grid-tyeman">
+            <div class="input-group">
+                <span>KPC 이름</span>
+                <input type="text" id="kpcInput" placeholder="KPC 치환 이름 입력">
+            </div>
+            <div class="input-group">
+                <span>PC / 탐사자 이름</span>
+                <input type="text" id="pcInput" placeholder="PC 치환 이름 입력">
             </div>
         </div>
 
-        <div id="panelMulti" class="name-panel hidden">
+        <div id="panelMulti" class="hidden">
             <div class="name-grid grid-multi">
-                <div class="input-group"><span>HO1</span><input type="text" id="ch1Input" placeholder="1번 이름"></div>
-                <div class="input-group"><span>HO2</span><input type="text" id="ch2Input" placeholder="2번 이름"></div>
-                <div class="input-group"><span>HO3</span><input type="text" id="ch3Input" placeholder="3번 이름"></div>
-                <div class="input-group"><span>HO4</span><input type="text" id="ch4Input" placeholder="4번 이름"></div>
+                <div class="input-group"><span>HO1 / PC1</span><input type="text" id="ch1Input" placeholder="1번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO2 / PC2</span><input type="text" id="ch2Input" placeholder="2번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO3 / PC3</span><input type="text" id="ch3Input" placeholder="3번 캐릭터 이름"></div>
+                <div class="input-group"><span>HO4 / PC4</span><input type="text" id="ch4Input" placeholder="4번 캐릭터 이름"></div>
             </div>
         </div>
 
-        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
-        
-        <label class="translate-option-box">
-            <input type="checkbox" id="jpTranslateOpt">
-            <span>일본어 번역</span>
-        </label>
-
-        <div class="btn-group">
-            <button id="clearBtn" class="notion-btn btn-clear">초기화</button>
-            <button id="submitBtn" class="notion-btn btn-submit">실행</button>
-        </div>
+        <textarea id="rawScript" placeholder="여기에 변환할 원본 스크립트를 붙여넣으세요..."></textarea>
+        <button id="submitBtn" class="notion-btn btn-submit">스크립트 변환 및 실행</button>
     </div>
 
     <div class="notion-card">
         <div class="panel-header">
             <div class="notion-label" style="margin: 0;">출력된 스크립트 블록</div>
-            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 12px; font-size: 0.8rem;">전체 복사</button>
+            <button id="copyAllBtn" class="notion-btn" style="padding: 6px 14px; font-size: 0.8rem;">전체 복사</button>
         </div>
         
         <div id="resultContainer">
@@ -347,44 +327,22 @@
         </div>
     </div>
 
+    <textarea id="hiddenClipboard" style="position:fixed; top:-9999px; left:-9999px;"></textarea>
+
     <script>
         let currentMode = 'tyeman';
 
         function switchMode(mode) {
             currentMode = mode;
-            document.getElementById('tabTyeman').classList.remove('active');
-            document.getElementById('tabMulti').classList.remove('active');
-            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
             if (mode === 'tyeman') {
-                document.getElementById('tabTyeman').classList.add('active');
                 document.getElementById('panelTyeman').classList.remove('hidden');
                 document.getElementById('panelMulti').classList.add('hidden');
             } else {
-                document.getElementById('tabMulti').classList.add('active');
                 document.getElementById('panelTyeman').classList.add('hidden');
                 document.getElementById('panelMulti').classList.remove('hidden');
-            }
-        }
-
-        async function translateLine(text) {
-            if (!text.trim()) return text;
-            try {
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data && data[0]) {
-                    let result = "";
-                    data[0].forEach(part => {
-                        if (part[0]) result += part[0];
-                    });
-                    // 번역 결과물의 불필요한 연속 공백 정제
-                    return result.trim().replace(/\s+/g, " ");
-                }
-                return text;
-            } catch (error) {
-                console.error("번역 에러 발생:", error);
-                return text;
             }
         }
 
@@ -414,179 +372,28 @@
             return fixed;
         }
 
-        function preprocessPDFText(text) {
-            let rawLines = text.split('\n');
-            const processedLines = [];
-            let buffer = "";
-
-            rawLines.forEach(line => {
-                let current = line.trim();
-                if (!current) return;
-
-                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
-                                  current.includes('핸드아웃') || current.includes('비밀번호') || current.includes('Handout') || current.includes('http');
-
-                if (isSpecial) {
-                    if (buffer) {
-                        processedLines.push(buffer.trim());
-                        buffer = "";
-                    }
-                    processedLines.push(current);
-                    return;
-                }
-
-                if (buffer) {
-                    const lastChar = buffer.slice(-1);
-                    const isSentenceEnd = /[.!??”’)\]지역｣』。．]$/.test(lastChar);
-
-                    if (!isSentenceEnd) {
-                        // PDF 줄 이어붙이기 할 때 단어끼리 붙지 않도록 공백 하나 부여하여 병합
-                        buffer += " " + current;
-                    } else {
-                        processedLines.push(buffer.trim());
-                        buffer = current;
-                    }
-                } else {
-                    buffer = current;
-                }
-            });
-
-            if (buffer) {
-                processedLines.push(buffer.trim());
-            }
-
-            return processedLines.join('\n');
-        }
-
-        document.getElementById('clearBtn').addEventListener('click', function() {
-            const textarea = document.getElementById('rawScript');
-            textarea.value = '';
-            document.getElementById('jpTranslateOpt').checked = false;
-            textarea.focus();
-        });
-
-        document.getElementById('submitBtn').addEventListener('click', async function() {
+        document.getElementById('submitBtn').addEventListener('click', function() {
             const rawScript = document.getElementById('rawScript').value;
             const container = document.getElementById('resultContainer');
-            const isJpMode = document.getElementById('jpTranslateOpt').checked;
             
             if (!rawScript.trim()) return;
 
-            container.innerHTML = '<div class="loading-text">LOADING...</div>';
+            container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">데이터 변환 중...</div>';
 
-            let restoredText = preprocessPDFText(rawScript);
-            const intermediateLines = [];
-            const rawLines = restoredText.split('\n');
+            let fixedText = rawScript;
 
-            // 1단계: 문장 단위 정밀 분할 레이어 (가장 성능이 좋았던 기존 핵심 엔진)
-            rawLines.forEach(line => {
-                let trimmedLine = line.trim();
-                if (!trimmedLine) return;
-
-                const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
-                const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
-                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.includes('BGM') || trimmedLine.includes('bgm') || trimmedLine.includes('브금');
-
-                if (isKpLine || isHandoutLine || isUrlLine) {
-                    // 특수 라인은 내부 다중 공백 제거 후 즉시 격리 보존
-                    intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
-                } else {
-                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
-
-                    const quotesAndBrackets = [];
-                    // 마침표가 들어 있어도 쪼개지 않게 원본을 잠글 대사 및 특수 부호 패턴 정의
-                    const quotePatterns = [
-                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
-                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
-                    ];
-
-                    let protectedText = trimmedLine;
-                    quotePatterns.forEach(pattern => {
-                        protectedText = protectedText.replace(pattern, (match) => {
-                            // 내부 쉼표 임시 유니코드 마킹 보호
-                            const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
-                            const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
-                            quotesAndBrackets.push(safeMatch);
-                            return placeholder;
-                        });
-                    });
-
-                    // 보호용 플레이스홀더 바깥 영역의 순수 마침표 기호 기준으로 안전 분할
-                    const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)\s*/g);
-
-                    sentences.forEach(sentence => {
-                        let currentSentence = sentence.trim();
-                        if (!currentSentence) return;
-
-                        let lastSplitIdx = 0;
-                        let i = 0;
-
-                        while (i < currentSentence.length) {
-                            if (currentSentence[i] === ',' || currentSentence[i] === '、') {
-                                let segment = currentSentence.substring(lastSplitIdx, i + 1);
-                                
-                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                    segment = segment.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                }
-                                segment = segment.replace(/\u0001/g, ',').replace(/\u0003/g, '、'); 
-                                segment = segment.replace(/\s+/g, " ").trim();
-
-                                if (segment.length <= 8) {
-                                    currentSentence = currentSentence.substring(0, i) + (currentSentence[i] === ',' ? '\u0000' : '\u0004') + currentSentence.substring(i + 1);
-                                } else {
-                                    lastSplitIdx = i + 1;
-                                }
-                            }
-                            i++;
-                        }
-
-                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
-
-                        subParts.forEach(part => {
-                            let chunk = part.trim();
-                            if (chunk) {
-                                chunk = chunk.replace(/\u0000/g, ',').replace(/\u0004/g, '、');
-                                
-                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                    chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                }
-                                chunk = chunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
-                                
-                                // ⭐ 최종 문장 조각 적치 시 다중 공백 압축 및 청소 스크립트 반영
-                                chunk = chunk.replace(/\s+/g, " ").trim();
-
-                                if (chunk) {
-                                    intermediateLines.push({ text: chunk, isSpecial: false });
-                                }
-                            }
-                        });
-                    });
-                }
-            });
-
-            // 2단계: 초고속 병렬 번역 레이어
-            if (isJpMode) {
-                const promises = intermediateLines.map(item => translateLine(item.text));
-                const translatedResults = await Promise.all(promises);
-                for (let i = 0; i < intermediateLines.length; i++) {
-                    intermediateLines[i].text = translatedResults[i];
-                }
-            }
-
-            // 3단계: 이름 치환 및 조사 자동 보정 엔진
-            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
                 
                 if (kpcName) {
-                    finalProcessedText = finalProcessedText.split('KPC').join(kpcName);
-                    finalProcessedText = fixKoreanJosa(finalProcessedText, kpcName);
+                    fixedText = fixedText.split('KPC').join(kpcName);
+                    fixedText = fixKoreanJosa(fixedText, kpcName);
                 }
                 if (pcName) {
-                    finalProcessedText = finalProcessedText.split('탐사자').join(pcName);
-                    finalProcessedText = finalProcessedText.split('PC').join(pcName); 
-                    finalProcessedText = fixKoreanJosa(finalProcessedText, pcName);
+                    fixedText = fixedText.split('탐사자').join(pcName);
+                    fixedText = fixedText.split('PC').join(pcName); 
+                    fixedText = fixKoreanJosa(fixedText, pcName);
                 }
             } else {
                 const replaceTargets = [
@@ -600,41 +407,104 @@
                     const customName = document.getElementById(target.id).value.trim();
                     if (customName) {
                         target.keywords.forEach(keyword => {
-                            finalProcessedText = finalProcessedText.split(keyword).join(customName);
+                            fixedText = fixedText.split(keyword).join(customName);
                         });
-                        finalProcessedText = fixKoreanJosa(finalProcessedText, customName);
+                        fixedText = fixKoreanJosa(fixedText, customName);
                     }
                 });
             }
 
-            // 조사 결합 시 발생할 수 있는 공백 정제 및 2차 다중 공백 최종 압축 필터링
-            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+            const rawLines = fixedText.split('\n');
+            const finalLines = [];
 
-            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
-            const absoluteFinalLines = finalProcessedText.split('\n');
+            rawLines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const isKpLine = trimmedLine.includes('키퍼 정보') || 
+                                 trimmedLine.includes('키퍼') || 
+                                 trimmedLine.includes('KP') || 
+                                 trimmedLine.includes('kp') || 
+                                 trimmedLine.includes('Kp');
+
+                const isHandoutLine = trimmedLine.includes('핸드아웃') || 
+                                      trimmedLine.includes('비밀번호') || 
+                                      trimmedLine.includes('Handout') || 
+                                      trimmedLine.includes('handout');
+
+                if (isKpLine || isHandoutLine) {
+                    finalLines.push(trimmedLine);
+                } else {
+                    let subText = trimmedLine;
+                    const safeBlocks = [];
+
+                    subText = subText.replace(/(\d+)\.\s/g, (match) => {
+                        const id = ` __SAFE_BLOCK_${safeBlocks.length}__ `;
+                        safeBlocks.push(match);
+                        return id;
+                    });
+
+                    subText = subText.replace(/(https?:\/\/[^\s]+)/g, (match) => {
+                        const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
+                        safeBlocks.push(match);
+                        return id;
+                    });
+
+                    const quotePatterns = [
+                        /“([^”\n]*)”/g, /"([^"\n]*)"/g,
+                        /‘([^’\n]*)’/g, /'([^'\n]*)'/g,
+                        /\(([^)\n]*)\)/g, /\[([^\]\n]*)\]/g,
+                        /「([^」\n]*)」/g, /『([^』\n]*)』/g
+                    ];
+
+                    quotePatterns.forEach(pattern => {
+                        subText = subText.replace(pattern, (match) => {
+                            const id = `__SAFE_BLOCK_${safeBlocks.length}__`;
+                            safeBlocks.push(match);
+                            return id;
+                        });
+                    });
+
+                    const splitRegex = /(?<=[.!?]|\.{3,}|…|⋯+)\s+/g;
+                    const parts = subText.split(splitRegex);
+                    
+                    parts.forEach(part => {
+                        let chunk = part.trim();
+                        if (chunk) {
+                            for (let i = safeBlocks.length - 1; i >= 0; i--) {
+                                chunk = chunk.split(`__SAFE_BLOCK_${i}__`).join(safeBlocks[i]);
+                            }
+                            finalLines.push(chunk);
+                        }
+                    });
+                }
+            });
+
             const fragment = document.createDocumentFragment();
 
-            absoluteFinalLines.forEach(lineText => {
-                // 한 번 더 문장별 찌꺼기 다중 공백 일괄 압축 처리
-                let currentLineText = lineText.replace(/\s+/g, " ").trim();
-                if (!currentLineText) return;
-
+            finalLines.forEach(lineText => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'notion-row';
 
                 const mainBlock = document.createElement('div');
                 mainBlock.className = 'notion-block';
-                mainBlock.innerText = currentLineText;
+                mainBlock.innerText = lineText;
 
-                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.includes('BGM') || currentLineText.includes('bgm') || currentLineText.includes('브금');
-                const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
-                const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
-                const isCheckLine = currentLineText.includes('판정');
+                const isUrl = lineText.includes('http://') || lineText.includes('https://') ||
+                              lineText.includes('BGM') || lineText.includes('bgm') || lineText.includes('브금');
+                const isKp = lineText.includes('키퍼 정보') || lineText.includes('키퍼') || lineText.includes('KP') || lineText.includes('kp') || lineText.includes('Kp');
+                const isHandout = lineText.includes('핸드아웃') || lineText.includes('비밀번호') || lineText.includes('Handout') || lineText.includes('handout');
+                const isCheckLine = lineText.includes('판정');
 
-                if (isKp) mainBlock.classList.add('state-kp');
-                else if (isCheckLine) mainBlock.classList.add('state-check');
-                else if (isHandout) mainBlock.classList.add('state-handout');
-                else if (isUrl) mainBlock.classList.add('state-link');
+                if (isKp) {
+                    mainBlock.classList.add('state-kp');
+                } else if (isCheckLine) {
+                    mainBlock.classList.add('state-check');
+                } else if (isHandout) {
+                    mainBlock.classList.add('state-handout');
+                } else if (isUrl) {
+                    mainBlock.classList.add('state-link');
+                }
 
                 mainBlock.onclick = function() {
                     if (mainBlock.classList.contains('state-editing')) return;
@@ -653,8 +523,6 @@
                     } else {
                         mainBlock.contentEditable = false;
                         mainBlock.classList.remove('state-editing');
-                        // 내 수동 수정본 저장 시에도 중복 공백 자동 클렌징 작동
-                        mainBlock.innerText = mainBlock.innerText.replace(/\s+/g, " ").trim();
                         editBtn.innerText = '수정';
                     }
                 };
@@ -691,41 +559,21 @@
         });
 
         function executeCopy(text, targetElement, successMessage = null) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showSuccess(targetElement, successMessage);
-                }).catch(() => {
-                    fallbackCopy(text, targetElement, successMessage);
-                });
-            } else {
-                fallbackCopy(text, targetElement, successMessage);
-            }
-        }
-
-        function fallbackCopy(text, targetElement, successMessage) {
-            const hiddenArea = document.createElement('textarea');
+            const hiddenArea = document.getElementById('hiddenClipboard');
             hiddenArea.value = text;
-            hiddenArea.style.position = 'fixed';
-            hiddenArea.style.top = '-9999px';
-            document.body.appendChild(hiddenArea);
             hiddenArea.select();
             try {
                 document.execCommand('copy');
-                showSuccess(targetElement, successMessage);
+                if(successMessage) {
+                    targetElement.innerText = successMessage;
+                } else {
+                    targetElement.classList.add('state-copied');
+                    setTimeout(() => targetElement.classList.remove('state-copied'), 400);
+                }
             } catch (err) {
-                console.error('복사 실패');
-            }
-            document.body.removeChild(hiddenArea);
-        }
-
-        function showSuccess(el, msg) {
-            if(msg) {
-                el.innerText = msg;
-            } else {
-                el.classList.add('state-copied');
-                setTimeout(() => el.classList.remove('state-copied'), 400);
+                console.error('Copy restriction');
             }
         }
     </script>
 </body>
-</html>
+</html>ㅠ
