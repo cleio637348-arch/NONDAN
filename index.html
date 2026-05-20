@@ -271,6 +271,7 @@
             cursor: text;
         }
 
+        /* LOADING 애니메이션 효과 */
         .loading-text {
             color: var(--text-handout);
             font-size: 1.1rem;
@@ -465,7 +466,7 @@
         });
 
         document.getElementById('submitBtn').addEventListener('click', async function() {
-            let rawScript = document.getElementById('rawScript').value;
+            const rawScript = document.getElementById('rawScript').value;
             const container = document.getElementById('resultContainer');
             const isJpMode = document.getElementById('jpTranslateOpt').checked;
             
@@ -473,22 +474,20 @@
 
             container.innerHTML = '<div class="loading-text" id="loadingProgress">LOADING... (0%)</div>';
 
-            // -------------------------------------------------------------------------
-            // 1단계: 이름 치환 및 조사 자동 보정 엔진 (최우선 순위 실행)
-            // -------------------------------------------------------------------------
-            let nameFixedText = rawScript;
+            // [우선 순위 격상] 1단계 가동 전 이름 및 조사 변환 엔진 먼저 적용
+            let preNameReplacedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
                 
                 if (kpcName) {
-                    nameFixedText = nameFixedText.split('KPC').join(kpcName);
-                    nameFixedText = fixKoreanJosa(nameFixedText, kpcName);
+                    preNameReplacedText = preNameReplacedText.split('KPC').join(kpcName);
+                    preNameReplacedText = fixKoreanJosa(preNameReplacedText, kpcName);
                 }
                 if (pcName) {
-                    nameFixedText = nameFixedText.split('탐사자').join(pcName);
-                    nameFixedText = nameFixedText.split('PC').join(pcName); 
-                    nameFixedText = fixKoreanJosa(nameFixedText, pcName);
+                    preNameReplacedText = preNameReplacedText.split('탐사자').join(pcName);
+                    preNameReplacedText = preNameReplacedText.split('PC').join(pcName); 
+                    preNameReplacedText = fixKoreanJosa(preNameReplacedText, pcName);
                 }
             } else {
                 const replaceTargets = [
@@ -502,22 +501,18 @@
                     const customName = document.getElementById(target.id).value.trim();
                     if (customName) {
                         target.keywords.forEach(keyword => {
-                            nameFixedText = nameFixedText.split(keyword).join(customName);
+                            preNameReplacedText = preNameReplacedText.split(keyword).join(customName);
                         });
-                        nameFixedText = fixKoreanJosa(nameFixedText, customName);
+                        preNameReplacedText = fixKoreanJosa(preNameReplacedText, customName);
                     }
                 });
             }
-            // 이름 뒤 불필요 공백 정리
-            nameFixedText = nameFixedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
-            // -------------------------------------------------------------------------
-            // 2단계: PDF 줄바꿈 결합 처리 및 정밀 문장 분할 레이어
-            // -------------------------------------------------------------------------
-            let restoredText = preprocessPDFText(nameFixedText);
+            let restoredText = preprocessPDFText(preNameReplacedText);
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
+            // 1단계: 문장 단위 정밀 분할 레이어
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -531,7 +526,6 @@
                 } else {
                     trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
 
-                    // 대사 특수 기호 보호 격리 레이어
                     const quotesAndBrackets = [];
                     const quotePatterns = [
                         /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
@@ -548,52 +542,58 @@
                         });
                     });
 
-                    // 마침표류 기준 1차 분할
+                    // 온점 문장 분할
                     const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)\s*/g);
 
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // [핵심 개선] 8글자 초과 문장 내의 쉼표 정밀 분할 알고리즘
-                        let parts = [];
-                        let currentSegment = "";
+                        // [핵심 변경 및 강화] 8글자 이상 구절 뒤의 쉼표(또는 、) 무조건 줄바꿈 분할 로직
+                        // 대괄호/따옴표 보호막 복원 전, 문자열 길이를 측정해가며 분할 수행
+                        let subParts = [];
+                        let currentCheckText = currentSentence;
                         
-                        // 임시로 보호 기호를 해제한 글자수 측정을 위한 배열 복사 생성
-                        let i = 0;
-                        while(i < currentSentence.length) {
-                            const char = currentSentence[i];
-                            
-                            if (char === ',' || char === '、') {
-                                // 현재까지 쌓인 문자열에서 보호 토큰을 임시 복구하여 순수 글자수 측정
-                                let checkStr = currentSegment;
-                                for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                    checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                }
-                                checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').trim();
+                        while (true) {
+                            // 감싸진 기호 요소를 제외하고 실제 체감 글자수 파악을 위한 임시 텍스트 연산
+                            let cleanLengthCheck = currentCheckText;
+                            for (let k = 0; k < quotesAndBrackets.length; k++) {
+                                cleanLengthCheck = cleanLengthCheck.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                            }
+                            cleanLengthCheck = cleanLengthCheck.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
 
-                                // 앞부분 문자열이 8글자를 초과하면 분할 포인트 확정
-                                if (checkStr.length > 8) {
-                                    currentSegment += char;
-                                    parts.push(currentSegment);
-                                    currentSegment = "";
+                            // 8글자 이상이면서 최초로 발견되는 쉼표 매칭 후 분할 위치 계산
+                            const commaMatch = currentCheckText.match(/[,、]/);
+                            if (commaMatch) {
+                                const commaIdx = commaMatch.index;
+                                const beforeCommaPart = currentCheckText.substring(0, commaIdx);
+                                
+                                // 앞부분의 실제 글자수 복원 후 길이 측정
+                                let restoredBefore = beforeCommaPart;
+                                for (let k = 0; k < quotesAndBrackets.length; k++) {
+                                    restoredBefore = restoredBefore.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
+                                }
+                                restoredBefore = restoredBefore.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+
+                                if (restoredBefore.trim().length >= 8) {
+                                    subParts.push(beforeCommaPart + commaMatch[0]);
+                                    currentCheckText = currentCheckText.substring(commaIdx + 1);
                                 } else {
-                                    // 8글자 이하이면 분할하지 않고 쉼표를 그대로 유지하여 결합
-                                    currentSegment += char;
+                                    // 8글자 미만이면 이번 쉼표는 스킵하고 임시 임베딩 후 루프 우회
+                                    currentCheckText = currentCheckText.substring(0, commaIdx) + (commaMatch[0] === ',' ? '\u0005' : '\u0006') + currentCheckText.substring(commaIdx + 1);
                                 }
                             } else {
-                                currentSegment += char;
+                                subParts.push(currentCheckText);
+                                break;
                             }
-                            i++;
-                        }
-                        if (currentSegment) {
-                            parts.push(currentSegment);
                         }
 
-                        // 복구 및 최종 주입
-                        parts.forEach(part => {
+                        // 가공 완료된 청크 데이터 복원 후 적재
+                        subParts.forEach(part => {
                             let chunk = part.trim();
                             if (chunk) {
+                                chunk = chunk.replace(/\u0005/g, ',').replace(/\u0006/g, '、');
+                                
                                 for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
                                     chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                                 }
@@ -609,9 +609,7 @@
                 }
             });
 
-            // -------------------------------------------------------------------------
-            // 3단계: 안전 대용량 배치(Batch) 번역 레이어 (휴식 메커니즘 포함)
-            // -------------------------------------------------------------------------
+            // 2단계: 장문 유저를 위한 대용량 안전 분할(Batch) 번역 레이어
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
@@ -653,13 +651,16 @@
                 }
             }
 
-            // -------------------------------------------------------------------------
-            // 4단계: UI 출력 블록 생성 및 화면 렌더링
-            // -------------------------------------------------------------------------
+            // 후처리 공백 조사 흡수 
+            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
+            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+
+            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
+            const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
-            intermediateLines.forEach(item => {
-                let currentLineText = item.text.replace(/\s+/g, " ").trim();
+            absoluteFinalLines.forEach(lineText => {
+                let currentLineText = lineText.replace(/\s+/g, " ").trim();
                 if (!currentLineText) return;
 
                 const wrapper = document.createElement('div');
@@ -725,4 +726,49 @@
             const lines = document.querySelectorAll('.notion-block');
             if (lines.length === 0) return;
             const allTextArray = [];
-            lines.forEach(
+            lines.forEach(line => allTextArray.push(line.innerText));
+            const combinedText = allTextArray.join('\n');
+            const btn = document.getElementById('copyAllBtn');
+            executeCopy(combinedText, btn, "복사 완료!");
+            setTimeout(() => { btn.innerText = "전체 복사"; }, 1000);
+        });
+
+        function executeCopy(text, targetElement, successMessage = null) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showSuccess(targetElement, successMessage);
+                }).catch(() => {
+                    fallbackCopy(text, targetElement, successMessage);
+                });
+            } else {
+                fallbackCopy(text, targetElement, successMessage);
+            }
+        }
+
+        function fallbackCopy(text, targetElement, successMessage) {
+            const hiddenArea = document.createElement('textarea');
+            hiddenArea.value = text;
+            hiddenArea.style.position = 'fixed';
+            hiddenArea.style.top = '-9999px';
+            document.body.appendChild(hiddenArea);
+            hiddenArea.select();
+            try {
+                document.execCommand('copy');
+                showSuccess(targetElement, successMessage);
+            } catch (err) {
+                console.error('복사 실패');
+            }
+            document.body.removeChild(hiddenArea);
+        }
+
+        function showSuccess(el, msg) {
+            if(msg) {
+                el.innerText = msg;
+            } else {
+                el.classList.add('state-copied');
+                setTimeout(() => el.classList.remove('state-copied'), 400);
+            }
+        }
+    </script>
+</body>
+</html>
