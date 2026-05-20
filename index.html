@@ -350,7 +350,6 @@
     <script>
         let currentMode = 'tyeman';
 
-        // 탭 전환 시스템 정상 제어 함수
         function switchMode(mode) {
             currentMode = mode;
             document.getElementById('tabTyeman').classList.remove('active');
@@ -367,51 +366,25 @@
             }
         }
 
-        // 정밀 문맥 지향형 스마트 벌크 번역기
-        async function translateBulk(linesArray) {
-            if (linesArray.length === 0) return [];
-            
-            const delimiter = "\n[#]\n";
-            const combinedQuery = linesArray.join(delimiter);
-            
+        async function translateLine(text) {
+            if (!text.trim()) return text;
             try {
-                const url = `https://translate.google.com/translate_a/single?client=at&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(combinedQuery)}`;
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                let fullTranslatedText = "";
                 if (data && data[0]) {
+                    let result = "";
                     data[0].forEach(part => {
-                        if (part[0]) fullTranslatedText += part[0];
+                        if (part[0]) result += part[0];
                     });
+                    // 번역 결과물의 불필요한 연속 공백 정제
+                    return result.trim().replace(/\s+/g, " ");
                 }
-                
-                const translatedLines = fullTranslatedText.split(/\[\s*#\s*\]/i).map(s => s.trim());
-                const finalResult = [];
-                
-                for(let i = 0; i < linesArray.length; i++) {
-                    let translated = translatedLines[i] || linesArray[i];
-                    
-                    // TRPG 문맥 맞춤 의역 어휘 교정 레이어
-                    translated = translated
-                        .replace(/당신/g, "너")
-                        .replace(/그것은/g, "그건")
-                        .replace(/~라고 생각합니다/g, "~라는 생각이 들어")
-                        .replace(/이윽고/g, "얼마 안 가")
-                        .replace(/알아차리면/g, "정신을 차려보니")
-                        .replace(/눈치 채면/g, "정신을 차려보니")
-                        .replace(/그 장소/g, "그곳")
-                        .replace(/다만/g, "그저")
-                        .replace(/의하여/g, "의해")
-                        .replace(/방향/g, "쪽")
-                        .replace(/그대로/g, "그 상태로");
-                        
-                    finalResult.push(translated);
-                }
-                return finalResult;
+                return text;
             } catch (error) {
-                console.error("번역 통신 에러 - 원문 유지 보존:", error);
-                return linesArray;
+                console.error("번역 에러 발생:", error);
+                return text;
             }
         }
 
@@ -464,10 +437,11 @@
 
                 if (buffer) {
                     const lastChar = buffer.slice(-1);
-                    const isSentenceEnd = /[.!??”’)\]｣』。．]$/.test(lastChar);
+                    const isSentenceEnd = /[.!??”’)\]지역｣』。．]$/.test(lastChar);
 
                     if (!isSentenceEnd) {
-                        buffer += current;
+                        // PDF 줄 이어붙이기 할 때 단어끼리 붙지 않도록 공백 하나 부여하여 병합
+                        buffer += " " + current;
                     } else {
                         processedLines.push(buffer.trim());
                         buffer = current;
@@ -498,27 +472,29 @@
             
             if (!rawScript.trim()) return;
 
-            // 대문자 LOADING... 화면 처리 작동
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
             let restoredText = preprocessPDFText(rawScript);
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 일본어 원문 상태 분할
+            // 1단계: 문장 단위 정밀 분할 레이어 (가장 성능이 좋았던 기존 핵심 엔진)
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
 
                 const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
                 const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
+                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.includes('BGM') || trimmedLine.includes('bgm') || trimmedLine.includes('브금');
 
-                if (isKpLine || isHandoutLine) {
-                    intermediateLines.push({ text: trimmedLine, isSpecial: true });
+                if (isKpLine || isHandoutLine || isUrlLine) {
+                    // 특수 라인은 내부 다중 공백 제거 후 즉시 격리 보존
+                    intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
                 } else {
                     trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
 
                     const quotesAndBrackets = [];
+                    // 마침표가 들어 있어도 쪼개지 않게 원본을 잠글 대사 및 특수 부호 패턴 정의
                     const quotePatterns = [
                         /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
                         /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
@@ -527,6 +503,7 @@
                     let protectedText = trimmedLine;
                     quotePatterns.forEach(pattern => {
                         protectedText = protectedText.replace(pattern, (match) => {
+                            // 내부 쉼표 임시 유니코드 마킹 보호
                             const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
                             const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
                             quotesAndBrackets.push(safeMatch);
@@ -534,6 +511,7 @@
                         });
                     });
 
+                    // 보호용 플레이스홀더 바깥 영역의 순수 마침표 기호 기준으로 안전 분할
                     const sentences = protectedText.split(/(?<=[.!?。．]|\.{3,}|…|⋯+)\s*/g);
 
                     sentences.forEach(sentence => {
@@ -573,6 +551,8 @@
                                     chunk = chunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
                                 }
                                 chunk = chunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、');
+                                
+                                // ⭐ 최종 문장 조각 적치 시 다중 공백 압축 및 청소 스크립트 반영
                                 chunk = chunk.replace(/\s+/g, " ").trim();
 
                                 if (chunk) {
@@ -584,16 +564,16 @@
                 }
             });
 
-            // 2단계: 번역 옵션 온일 시 고급 벌크 구동
+            // 2단계: 초고속 병렬 번역 레이어
             if (isJpMode) {
-                const textOnlyArray = intermediateLines.map(item => item.text);
-                const translatedArray = await translateBulk(textOnlyArray);
-                for(let i = 0; i < intermediateLines.length; i++) {
-                    intermediateLines[i].text = translatedArray[i];
+                const promises = intermediateLines.map(item => translateLine(item.text));
+                const translatedResults = await Promise.all(promises);
+                for (let i = 0; i < intermediateLines.length; i++) {
+                    intermediateLines[i].text = translatedResults[i];
                 }
             }
 
-            // 3단계: 치환 엔진 구동
+            // 3단계: 이름 치환 및 조사 자동 보정 엔진
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -627,14 +607,16 @@
                 });
             }
 
+            // 조사 결합 시 발생할 수 있는 공백 정제 및 2차 다중 공백 최종 압축 필터링
             finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
-            // 4단계: 최종 출력 빌드
+            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
             const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
             absoluteFinalLines.forEach(lineText => {
-                let currentLineText = lineText.trim();
+                // 한 번 더 문장별 찌꺼기 다중 공백 일괄 압축 처리
+                let currentLineText = lineText.replace(/\s+/g, " ").trim();
                 if (!currentLineText) return;
 
                 const wrapper = document.createElement('div');
@@ -671,6 +653,8 @@
                     } else {
                         mainBlock.contentEditable = false;
                         mainBlock.classList.remove('state-editing');
+                        // 내 수동 수정본 저장 시에도 중복 공백 자동 클렌징 작동
+                        mainBlock.innerText = mainBlock.innerText.replace(/\s+/g, " ").trim();
                         editBtn.innerText = '수정';
                     }
                 };
