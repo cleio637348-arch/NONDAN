@@ -412,7 +412,7 @@
             return fixed;
         }
 
-        // 🛠️ PDF 전처리 레이어: 문장이 종결되지 않았으면 줄바꿈을 공백으로 전환하여 병합
+        // PDF 전처리 최적화 엔진
         function preprocessPDFText(text) {
             let rawLines = text.split('\n').map(line => line.trim()).filter(line => line);
             const processedLines = [];
@@ -433,7 +433,7 @@
 
                 if (buffer) {
                     const lastChar = buffer.slice(-1);
-                    // 온전한 문장 종결 기호나 닫는 부호가 아닌 상태에서 줄바꿈이 일어났다면 자석 연결
+                    // 완벽한 문장 종결 부호 혹은 닫는 괄호 계열이 아니면 다음 줄을 한 칸 띄우고 강제 병합
                     const isSentenceEnd = /[.!??”’)\]｣』。．]$/.test(lastChar);
 
                     if (!isSentenceEnd) {
@@ -470,10 +470,10 @@
 
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
-            // 1. PDF 긁어오기 줄바꿈 최적화 및 2개 이상의 중복 공백 즉시 제거 제거
-            let restoredText = preprocessPDFText(rawScript).replace(/\s+/g, " ");
+            // [보완] 파이프라인 순서 교정: PDF 줄바꿈 병합을 먼저 진행 (조사 보정 간섭 최소화)
+            let restoredText = preprocessPDFText(rawScript);
             
-            // 2. URL 및 BGM 주소 토큰화 격리 보호
+            // URL 및 BGM 토큰화 격리
             const urlStorage = [];
             const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
             
@@ -483,7 +483,7 @@
                 return token;
             });
 
-            // 3. TRPG 이름 치환 및 조사 보정 자동 동기화 레이어
+            // 이름 사전 치환 및 조사 자동 교정 레이어
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
@@ -518,10 +518,13 @@
 
             restoredText = restoredText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
+            // [보완] 전처리가 완전히 완료된 시점에 다중 중복 공백 통합 압축 가동
+            restoredText = restoredText.replace(/\s+/g, " ");
+
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 4. 🛠️ [정밀 따옴표 보호 추적형 문장 분할 레이어]
+            // 정밀 문장 슬라이싱 추적 레이어
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -531,52 +534,50 @@
                 const isTokenOnly = trimmedLine.startsWith('__URL_TOKEN_') && trimmedLine.endsWith('__');
 
                 if (isKpLine || isHandoutLine || isTokenOnly) {
-                    intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
+                    intermediateLines.push({ text: trimmedLine, isSpecial: true });
                 } else {
                     trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
 
                     let sentences = [];
                     let currentChunk = "";
                     
-                    // 따옴표 쌍 추적을 위한 카운터 변수들
-                    let dQuoteOpen = false; // “ ” 혹은 " "
-                    let sQuoteOpen = false; // ‘ ’ 혹은 ' '
-                    let kBracketOpen = false; // 「 」
-                    let dBracketOpen = false; // 『 』
+                    // 특수 기호 개폐 쌍 감지 플래그
+                    let dQuoteOpen = false; 
+                    let sQuoteOpen = false; 
+                    let kBracketOpen = false; 
+                    let dBracketOpen = false; 
 
                     const splitMarkers = ['.', '?', '!', '。', '．', '~', '～'];
+                    const openMarkers = ['“', '"', '‘', "'", '「', '『'];
 
                     for (let idx = 0; idx < trimmedLine.length; idx++) {
                         let char = trimmedLine[idx];
                         currentChunk += char;
 
-                        // 따옴표 및 특수 기호 개폐 여부 실시간 스캔 및 잠금
-                        if (char === '“' || char === '"') dQuoteOpen = true;
-                        else if (char === '”' || char === '"') dQuoteOpen = false;
-                        
-                        if (char === '‘' || char === "'") sQuoteOpen = true;
-                        else if (char === '’' || char === "'") sQuoteOpen = false;
-
+                        // 특수부호 쌍 실시간 스캔 및 토글 잠금
+                        if (char === '“' || char === '"') dQuoteOpen = !dQuoteOpen;
+                        if (char === '‘' || char === "'") sQuoteOpen = !sQuoteOpen;
                         if (char === '「') kBracketOpen = true;
-                        else if (char === '」') kBracketOpen = false;
-
+                        if (char === '」') kBracketOpen = false;
                         if (char === '『') dBracketOpen = true;
-                        else if (char === '』') dBracketOpen = false;
+                        if (char === '』') dBracketOpen = false;
 
-                        // 어떤 따옴표나 대사 괄호도 열려있지 않을 때만 안전하게 자름 (특수문자부호 잠금 모드)
                         const isLocked = dQuoteOpen || sQuoteOpen || kBracketOpen || dBracketOpen;
 
                         if (!isLocked && splitMarkers.includes(char)) {
                             let isEllipsis = false;
                             
+                            // 일반 말줄임 연타 및 유니코드 특수 말줄임표(…, ⋯) 일괄 무시 보호
                             if (char === '.' && idx + 1 < trimmedLine.length && trimmedLine[idx + 1] === '.') isEllipsis = true;
                             if (char === '.' && idx - 1 >= 0 && trimmedLine[idx - 1] === '.') isEllipsis = true;
+                            if (char === '…' || char === '⋯') isEllipsis = true;
 
                             if (!isEllipsis) {
                                 const nextChar = (idx + 1 < trimmedLine.length) ? trimmedLine[idx + 1] : null;
-                                if (!nextChar || nextChar === ' ' || nextChar === '\t') {
+                                // [보완] 마침표 바로 다음에 새로운 대사 괄호가 시작되는 경우에도 안전하게 자르도록 결합 예외 처리 보강
+                                if (!nextChar || nextChar === ' ' || nextChar === '\t' || openMarkers.includes(nextChar)) {
                                     if (currentChunk.trim()) {
-                                        sentences.push(currentChunk.trim().replace(/\s+/g, " "));
+                                        sentences.push(currentChunk.trim());
                                     }
                                     currentChunk = "";
                                 }
@@ -584,10 +585,10 @@
                         }
                     }
                     if (currentChunk.trim()) {
-                        sentences.push(currentChunk.trim().replace(/\s+/g, " "));
+                        sentences.push(currentChunk.trim());
                     }
 
-                    // 쉼표 기반 단문 세부 슬라이싱 분할
+                    // 쉼표 기반 단문 분해 레이어
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
@@ -601,20 +602,20 @@
                                 finalSentenceBuffer += (finalSentenceBuffer ? " " : "") + chunk;
                                 if (chunk.endsWith(',') || chunk.endsWith('、')) {
                                     if (finalSentenceBuffer.trim().length > 8) {
-                                        intermediateLines.push({ text: finalSentenceBuffer.trim().replace(/\s+/g, " "), isSpecial: false });
+                                        intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
                                         finalSentenceBuffer = "";
                                     }
                                 }
                             }
                         });
                         if (finalSentenceBuffer.trim()) {
-                            intermediateLines.push({ text: finalSentenceBuffer.trim().replace(/\s+/g, " "), isSpecial: false });
+                            intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
                         }
                     });
                 }
             });
 
-            // 5. 실시간 구글 변역 동기화 레이어
+            // 비동기 변역 가동 레이어
             if (isJpMode) {
                 const promises = intermediateLines.map(item => {
                     if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
@@ -622,11 +623,11 @@
                 });
                 const translatedResults = await Promise.all(promises);
                 for (let i = 0; i < intermediateLines.length; i++) {
-                    intermediateLines[i].text = translatedResults[i].replace(/\s+/g, " ");
+                    intermediateLines[i].text = translatedResults[i];
                 }
             }
 
-            // 6. 주소 격리 복원 및 스크립트 출력 블록 렌더링
+            // 격리 주소 토큰 안전 해제 및 렌더링 바인딩
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             
             for (let idx = 0; idx < urlStorage.length; idx++) {
@@ -637,7 +638,7 @@
             const fragment = document.createDocumentFragment();
 
             absoluteFinalLines.forEach(lineText => {
-                let currentLineText = lineText.trim().replace(/\s+/g, " ");
+                let currentLineText = lineText.trim();
                 if (!currentLineText) return;
 
                 const wrapper = document.createElement('div');
