@@ -412,9 +412,46 @@
             return fixed;
         }
 
-        // 🛠️ PDF 전처리 단계: 원본 텍스트의 엔터(줄바꿈)는 무조건 살려서 무조건 쪼갭니다.
+        // 🛠️ [PDF 최적화 결합 엔진 복원] 문장이 끝나지 않은 엔터(\n)를 감지해 유기적으로 이어 붙임
         function preprocessPDFText(text) {
-            return text.split('\n').map(line => line.trim()).filter(line => line).join('\n');
+            let rawLines = text.split('\n').map(line => line.trim()).filter(line => line);
+            const processedLines = [];
+            let buffer = "";
+
+            rawLines.forEach(line => {
+                const isUrl = /(https?:\/\/[^\s]+|BGM|bgm|브금)/i.test(line);
+                const isSpecial = /(키퍼|KP|kp|핸드아웃|비밀번호|Handout)/i.test(line);
+
+                if (isSpecial || isUrl) {
+                    if (buffer) {
+                        processedLines.push(buffer.trim());
+                        buffer = "";
+                    }
+                    processedLines.push(line);
+                    return;
+                }
+
+                if (buffer) {
+                    const lastChar = buffer.slice(-1);
+                    // 문장 종결 부호가 아닌 상태로 엔터가 쳐졌다면 자석처럼 다음 줄을 연결
+                    const isSentenceEnd = /[.!??”’)\]｣』。．]$/.test(lastChar);
+
+                    if (!isSentenceEnd) {
+                        buffer += " " + line; 
+                    } else {
+                        processedLines.push(buffer.trim());
+                        buffer = line;
+                    }
+                } else {
+                    buffer = line;
+                }
+            });
+
+            if (buffer) {
+                processedLines.push(buffer.trim());
+            }
+
+            return processedLines.join('\n');
         }
 
         document.getElementById('clearBtn').addEventListener('click', function() {
@@ -433,9 +470,10 @@
 
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
+            // 1. PDF 긁어오기 줄바꿈 파괴 최적화 가동
             let restoredText = preprocessPDFText(rawScript);
-            const intermediateLines = [];
             
+            // 2. URL 및 BGM 주소 토큰화 보호
             const urlStorage = [];
             const urlRegex = /(https?:\/\/[^\s]+|BGM:\s*[^\n]+|bgm:\s*[^\n]+|브금:\s*[^\n]+)/gi;
             
@@ -445,9 +483,45 @@
                 return token;
             });
 
+            // 3. 이름 사전 치환 및 조사 보정 엔진
+            if (currentMode === 'tyeman') {
+                const kpcName = document.getElementById('kpcInput').value.trim();
+                const pcName = document.getElementById('pcInput').value.trim();
+                
+                if (kpcName) {
+                    restoredText = restoredText.split('KPC').join(kpcName);
+                    restoredText = fixKoreanJosa(restoredText, kpcName);
+                }
+                if (pcName) {
+                    restoredText = restoredText.split('탐사자').join(pcName);
+                    restoredText = restoredText.split('PC').join(pcName); 
+                    restoredText = fixKoreanJosa(restoredText, pcName);
+                }
+            } else {
+                const replaceTargets = [
+                    { id: 'ch1Input', keywords: ['HO1', 'ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
+                    { id: 'ch2Input', keywords: ['HO2', 'ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
+                    { id: 'ch3Input', keywords: ['HO3', 'ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
+                    { id: 'ch4Input', keywords: ['HO4', 'ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
+                ];
+
+                replaceTargets.forEach(target => {
+                    const customName = document.getElementById(target.id).value.trim();
+                    if (customName) {
+                        target.keywords.forEach(keyword => {
+                            restoredText = restoredText.split(keyword).join(customName);
+                        });
+                        restoredText = fixKoreanJosa(restoredText, customName);
+                    }
+                });
+            }
+
+            restoredText = restoredText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+
+            const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 문장 단위 정밀 분할 레이어
+            // 4. 정밀 정규식 우회형 문장 분할 레이어
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -477,24 +551,40 @@
                         });
                     });
 
-                    // 🛠️ [정규식 대수정] 연속된 점 3개 이상(...) 혹은 온점 말줄임표(…)를 먼저 임시 보호조치하여 말줄임표는 쪼개지지 않게 막습니다.
-                    let tempProtected = protectedText
-                        .replace(/\.{3,}/g, '___DOTS___')
-                        .replace(/…/g, '___ELLIPSIS___')
-                        .replace(/⋯+/g, '___MIDDOTS___');
+                    let sentences = [];
+                    let currentChunk = "";
+                    const splitMarkers = ['.', '?', '!', '。', '．', '~', '～', '”', '’', ']', ')', '｣', '』'];
 
-                    // 이제 말줄임표가 아닌 일반 마침표(.), 물음표(?), 느낌표(!), 동아시아 기호들 뒤에 글자가 오면 무조건 쪼갭니다.
-                    const sentences = tempProtected.split(/(?<=[.!?。．~～”’\]\)｣』])(?=[^.!?。．~～”’\]\)｣』]|$)/g);
+                    for (let idx = 0; idx < protectedText.length; idx++) {
+                        let char = protectedText[idx];
+                        currentChunk += char;
 
+                        if (splitMarkers.includes(char)) {
+                            let isEllipsis = false;
+                            
+                            if (char === '.' && idx + 1 < protectedText.length && protectedText[idx + 1] === '.') isEllipsis = true;
+                            if (char === '.' && idx - 1 >= 0 && protectedText[idx - 1] === '.') isEllipsis = true;
+                            if (char === '…' || char === '⋯') isEllipsis = true;
+
+                            if (!isEllipsis) {
+                                const nextChar = (idx + 1 < protectedText.length) ? protectedText[idx + 1] : null;
+                                if (!nextChar || nextChar === ' ' || nextChar === '\t') {
+                                    if (currentChunk.trim()) {
+                                        sentences.push(currentChunk.trim());
+                                    }
+                                    currentChunk = "";
+                                }
+                            }
+                        }
+                    }
+                    if (currentChunk.trim()) {
+                        sentences.push(currentChunk.trim());
+                    }
+
+                    // 쉼표 기반 가공 및 버퍼 병합
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
-
-                        // 보호해 둔 말줄임표를 다시 원래대로 원복시킵니다.
-                        currentSentence = currentSentence
-                            .replace(/___DOTS___/g, '...')
-                            .replace(/___ELLIPSIS___/g, '…')
-                            .replace(/___MIDDOTS___/g, '⋯');
 
                         let lastSplitIdx = 0;
                         let i = 0;
@@ -518,7 +608,8 @@
                             i++;
                         }
 
-                        const subParts = currentSentence.split(/(?<=,|、)\s*/g);
+                        const subParts = currentSentence.split(/[\s]+/);
+                        let finalSentenceBuffer = "";
 
                         subParts.forEach(part => {
                             let chunk = part.trim();
@@ -532,15 +623,22 @@
                                 chunk = chunk.replace(/\s+/g, " ").trim();
 
                                 if (chunk) {
-                                    intermediateLines.push({ text: chunk, isSpecial: false });
+                                    finalSentenceBuffer += (finalSentenceBuffer ? " " : "") + chunk;
+                                    if (chunk.endsWith(',') || chunk.endsWith('、')) {
+                                        intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
+                                        finalSentenceBuffer = "";
+                                    }
                                 }
                             }
                         });
+                        if (finalSentenceBuffer.trim()) {
+                            intermediateLines.push({ text: finalSentenceBuffer.trim(), isSpecial: false });
+                        }
                     });
                 }
             });
 
-            // 2단계: 초고속 병렬 번역 레이어
+            // 5. 구글 초고속 번역 가동
             if (isJpMode) {
                 const promises = intermediateLines.map(item => {
                     if (item.text.includes('__URL_TOKEN_')) return Promise.resolve(item.text);
@@ -552,47 +650,13 @@
                 }
             }
 
-            // 3단계: 이름 치환 및 조사 자동 보정 엔진
+            // 6. 격리 주소 복원 및 최종 렌더링
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
-            if (currentMode === 'tyeman') {
-                const kpcName = document.getElementById('kpcInput').value.trim();
-                const pcName = document.getElementById('pcInput').value.trim();
-                
-                if (kpcName) {
-                    finalProcessedText = finalProcessedText.split('KPC').join(kpcName);
-                    finalProcessedText = fixKoreanJosa(finalProcessedText, kpcName);
-                }
-                if (pcName) {
-                    finalProcessedText = finalProcessedText.split('탐사자').join(pcName);
-                    finalProcessedText = finalProcessedText.split('PC').join(pcName); 
-                    finalProcessedText = fixKoreanJosa(finalProcessedText, pcName);
-                }
-            } else {
-                const replaceTargets = [
-                    { id: 'ch1Input', keywords: ['HO1', 'ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
-                    { id: 'ch2Input', keywords: ['HO2', 'ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
-                    { id: 'ch3Input', keywords: ['HO3', 'ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
-                    { id: 'ch4Input', keywords: ['HO4', 'ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
-                ];
-
-                replaceTargets.forEach(target => {
-                    const customName = document.getElementById(target.id).value.trim();
-                    if (customName) {
-                        target.keywords.forEach(keyword => {
-                            finalProcessedText = finalProcessedText.split(keyword).join(customName);
-                        });
-                        finalProcessedText = fixKoreanJosa(finalProcessedText, customName);
-                    }
-                });
-            }
-
-            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
-
+            
             for (let idx = 0; idx < urlStorage.length; idx++) {
                 finalProcessedText = finalProcessedText.split(`__URL_TOKEN_${idx}__`).join(urlStorage[idx]);
             }
 
-            // 4단계: UI 출력 블록 생성 및 하이라이트 스타일링
             const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
