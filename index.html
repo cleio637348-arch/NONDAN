@@ -102,16 +102,21 @@
             font-weight: 600;
         }
 
+        .name-panel {
+            margin-bottom: 16px;
+        }
+
         .name-grid {
             display: grid;
             gap: 12px;
-            margin-bottom: 16px;
-            grid-template-columns: 1fr;
         }
         
-        @media (min-width: 480px) {
-            .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
-            .grid-multi { grid-template-columns: repeat(2, 1fr); }
+        .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
+        .grid-multi { grid-template-columns: repeat(2, 1fr); }
+        
+        @media (max-width: 480px) {
+            .grid-tyeman { grid-template-columns: 1fr; }
+            .grid-multi { grid-template-columns: 1fr; }
         }
         @media (min-width: 768px) {
             .grid-multi { grid-template-columns: repeat(4, 1fr); }
@@ -151,6 +156,7 @@
             height: 150px;
             resize: vertical;
             line-height: 1.6;
+            margin-bottom: 14px;
         }
 
         .translate-option-box {
@@ -265,7 +271,7 @@
             cursor: text;
         }
 
-        /* LOADING 효과 애니메이션 */
+        /* LOADING 애니메이션 효과 */
         .loading-text {
             color: var(--text-handout);
             font-size: 1.1rem;
@@ -291,22 +297,24 @@
         <div class="notion-label">모드 설정</div>
         
         <div class="notion-tabs">
-            <button class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
-            <button class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
+            <button id="tabTyeman" class="tab-btn active" onclick="switchMode('tyeman')">타이만 모드</button>
+            <button id="tabMulti" class="tab-btn" onclick="switchMode('multi')">다인 모드</button>
         </div>
 
-        <div id="panelTyeman" class="name-grid grid-tyeman">
-            <div class="input-group">
-                <span>KPC 이름</span>
-                <input type="text" id="kpcInput" placeholder="KPC 이름">
-            </div>
-            <div class="input-group">
-                <span>PC / 탐사자 이름</span>
-                <input type="text" id="pcInput" placeholder="PC 이름">
+        <div id="panelTyeman" class="name-panel">
+            <div class="name-grid grid-tyeman">
+                <div class="input-group">
+                    <span>KPC 이름</span>
+                    <input type="text" id="kpcInput" placeholder="KPC 이름">
+                </div>
+                <div class="input-group">
+                    <span>PC / 탐사자 이름</span>
+                    <input type="text" id="pcInput" placeholder="PC 이름">
+                </div>
             </div>
         </div>
 
-        <div id="panelMulti" class="hidden">
+        <div id="panelMulti" class="name-panel hidden">
             <div class="name-grid grid-multi">
                 <div class="input-group"><span>HO1</span><input type="text" id="ch1Input" placeholder="1번 이름"></div>
                 <div class="input-group"><span>HO2</span><input type="text" id="ch2Input" placeholder="2번 이름"></div>
@@ -342,16 +350,31 @@
     <script>
         let currentMode = 'tyeman';
 
-        // 정밀 문맥 지향형 스마트 벌크 번역기 (단어 윤택화 커스텀 모델 파싱)
+        // 탭 전환 시스템 정상 제어 함수
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabTyeman').classList.remove('active');
+            document.getElementById('tabMulti').classList.remove('active');
+            
+            if (mode === 'tyeman') {
+                document.getElementById('tabTyeman').classList.add('active');
+                document.getElementById('panelTyeman').classList.remove('hidden');
+                document.getElementById('panelMulti').classList.add('hidden');
+            } else {
+                document.getElementById('tabMulti').classList.add('active');
+                document.getElementById('panelTyeman').classList.add('hidden');
+                document.getElementById('panelMulti').classList.remove('hidden');
+            }
+        }
+
+        // 정밀 문맥 지향형 스마트 벌크 번역기
         async function translateBulk(linesArray) {
             if (linesArray.length === 0) return [];
             
-            // 고유 분할 태그 주입을 통한 문장 누락 방지 및 결합 문맥 확보
             const delimiter = "\n[#]\n";
             const combinedQuery = linesArray.join(delimiter);
             
             try {
-                // 구글 클라우드 번역 서브 레이어 연동 (문맥 인지 의역 가중치 적용 주소)
                 const url = `https://translate.google.com/translate_a/single?client=at&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(combinedQuery)}`;
                 const response = await fetch(url);
                 const data = await response.json();
@@ -363,15 +386,13 @@
                     });
                 }
                 
-                // 특수 기호 파싱 및 매핑
                 const translatedLines = fullTranslatedText.split(/\[\s*#\s*\]/i).map(s => s.trim());
-                
-                // TRPG 연출용 단어 윤택화 필터 (직역투 표현을 문맥에 부합하게 자동 치환)
                 const finalResult = [];
+                
                 for(let i = 0; i < linesArray.length; i++) {
                     let translated = translatedLines[i] || linesArray[i];
                     
-                    // 윤택한 문맥을 위한 어휘 교정 레이어
+                    // TRPG 문맥 맞춤 의역 어휘 교정 레이어
                     translated = translated
                         .replace(/당신/g, "너")
                         .replace(/그것은/g, "그건")
@@ -389,24 +410,8 @@
                 }
                 return finalResult;
             } catch (error) {
-                console.error("고급 번역 모델 일시 통신 에러 - 원문 유지 보존:", error);
+                console.error("번역 통신 에러 - 원문 유지 보존:", error);
                 return linesArray;
-            }
-        }
-
-        function switchMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if(event && event.target) {
-                event.target.classList.add('active');
-            }
-
-            if (mode === 'tyeman') {
-                document.getElementById('panelTyeman').classList.remove('hidden');
-                document.getElementById('panelMulti').classList.add('hidden');
-            } else {
-                document.getElementById('panelTyeman').classList.add('hidden');
-                document.getElementById('panelMulti').classList.remove('hidden');
             }
         }
 
@@ -446,8 +451,7 @@
                 if (!current) return;
 
                 const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
-                                  current.includes('핸드아웃') || current.includes('Handout') || current.includes('http') ||
-                                  current.includes('클래스') || current.includes('시나리오');
+                                  current.includes('핸드아웃') || current.includes('비밀번호') || current.includes('Handout') || current.includes('http');
 
                 if (isSpecial) {
                     if (buffer) {
@@ -494,14 +498,14 @@
             
             if (!rawScript.trim()) return;
 
-            // 요청하신 LOADING... 대문자 애니메이션 표기 적용
+            // 대문자 LOADING... 화면 처리 작동
             container.innerHTML = '<div class="loading-text">LOADING...</div>';
 
             let restoredText = preprocessPDFText(rawScript);
             const intermediateLines = [];
             const rawLines = restoredText.split('\n');
 
-            // 1단계: 일본어 원문 상태에서 구두점 및 문장 분할 처리 선행 작동
+            // 1단계: 일본어 원문 상태 분할
             rawLines.forEach(line => {
                 let trimmedLine = line.trim();
                 if (!trimmedLine) return;
@@ -580,7 +584,7 @@
                 }
             });
 
-            // 2단계: 번역 옵션 활성화 시 고급 윤택 벌크 통신 가동
+            // 2단계: 번역 옵션 온일 시 고급 벌크 구동
             if (isJpMode) {
                 const textOnlyArray = intermediateLines.map(item => item.text);
                 const translatedArray = await translateBulk(textOnlyArray);
@@ -589,7 +593,7 @@
                 }
             }
 
-            // 3단계: 치환 엔진 및 조사 매칭 후처리 보정 가동
+            // 3단계: 치환 엔진 구동
             let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
@@ -623,10 +627,9 @@
                 });
             }
 
-            // 조사 정리 스크럽 필터
             finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
 
-            // 4단계: 최종 렌더링 출력 레이어 형성
+            // 4단계: 최종 출력 빌드
             const absoluteFinalLines = finalProcessedText.split('\n');
             const fragment = document.createDocumentFragment();
 
