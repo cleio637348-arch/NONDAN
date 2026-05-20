@@ -555,7 +555,11 @@
 
         // 엔터 무결성 강화 파서
         function preprocessText(text, usePdfMode) {
-            let rawLines = text.split(/\r?\n/);
+            // [기능 추가] 세 개 이상의 엔터(\n\n\n+)를 과감히 잘라내어 최대 두 개의 엔터(\n\n)만 남김
+            let normalNewlineText = text.replace(/\r?\n/g, '\n');
+            normalNewlineText = normalNewlineText.replace(/\n{3,}/g, '\n\n');
+
+            let rawLines = normalNewlineText.split('\n');
             const processedLines = [];
             let buffer = "";
 
@@ -677,7 +681,6 @@
                     intermediateLines.push({ text: trimmed.replace(/\s+/g, " "), isSpecial: true });
                 } else {
                     // 요구사항 반영: 마침표+특수문자 조합 무조건 즉시 분절 강제 기믹
-                    // (.” , .] , .> 등 마침표 바로 뒤 특수문자가 붙어있는 세트를 탐지해 임시 경계용 제어코드 치환)
                     let puncSpecialEnforced = trimmed.replace(/([.!?。．…⋯]+['"”’\]\>」』\)])/g, "$1\u0008");
                     let puncSegments = puncSpecialEnforced.split('\u0008');
 
@@ -769,7 +772,7 @@
                     let currentChunkText = "";
                     let chunkIndices = [];
                     
-                    loadingTextEl.innerText = `대용량 번역 동기화 가속 중... (${i} / ${totalLines})`;
+                    loadingTextEl.innerText = `LOADING... (${i} / ${totalLines})`;
                     
                     while (i < totalLines) {
                         if (intermediateLines[i].isBlank) { i++; continue; }
@@ -825,9 +828,14 @@
             const fragment = document.createDocumentFragment();
             let totalCharacterCount = 0;
 
+            // 출력단 속도 저하 및 UI 무너짐 방지를 위해 필터링된 연속 공백 라인 제어 기믹 적용
+            let lastWasBlank = false;
+
             intermediateLines.forEach(item => {
                 // 엔터 공백 라인 렌더링
                 if (item.isBlank) {
+                    if (lastWasBlank) return; // 이미 공백 블록이 찍혔다면 중복 렌더링 방지
+                    
                     const brWrapper = document.createElement('div');
                     brWrapper.className = 'notion-row';
                     brWrapper.style.border = 'none';
@@ -840,11 +848,14 @@
                     
                     brWrapper.appendChild(brBlock);
                     fragment.appendChild(brWrapper);
+                    lastWasBlank = true;
                     return;
                 }
 
                 let lineText = item.text.replace(/\s+/g, " ").trim();
                 if (!lineText) return;
+                
+                lastWasBlank = false; // 글자가 나오면 공백 플래그 리셋
 
                 const linksInLine = lineText.match(urlRegex);
                 if (linksInLine) {
