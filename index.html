@@ -322,11 +322,11 @@
             </div>
         </div>
 
-        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요."></textarea>
+        <textarea id="rawScript" placeholder="텍스트를 붙여넣으세요. PDF 긁어오기 줄바꿈 보정, 숫자 번호 및 단문 쉼표 보호 기능이 자동으로 동작합니다."></textarea>
         
         <label class="translate-option-box">
             <input type="checkbox" id="jpTranslateOpt">
-            <span>일본어 번역</span>
+            <span>일본어 자동 번역</span>
         </label>
 
         <div class="btn-group">
@@ -351,39 +351,25 @@
 
         function switchMode(mode) {
             currentMode = mode;
-            const tabTyeman = document.getElementById('tabTyeman');
-            const tabMulti = document.getElementById('tabMulti');
-            const panelTyeman = document.getElementById('panelTyeman');
-            const panelMulti = document.getElementById('panelMulti');
-
-            if (mode === 'tyeman') {
-                tabTyeman.classList.add('active');
-                tabMulti.classList.remove('active');
-                panelTyeman.classList.remove('hidden');
-                panelMulti.classList.add('hidden');
-            } else {
-                tabMulti.classList.add('active');
-                tabTyeman.classList.remove('active');
-                panelMulti.classList.remove('hidden');
-                panelTyeman.classList.add('hidden');
-            }
+            document.getElementById('tabTyeman').classList.toggle('active', mode === 'tyeman');
+            document.getElementById('tabMulti').classList.toggle('active', mode === 'multi');
+            document.getElementById('panelTyeman').classList.toggle('hidden', mode !== 'tyeman');
+            document.getElementById('panelMulti').classList.toggle('hidden', mode !== 'multi');
         }
 
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        async function translateLine(text) {
+        // 구글 번역 연동 API 래퍼 함수
+        async function translateTextChunk(text) {
             if (!text.trim()) return text;
             try {
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
                 const response = await fetch(url);
                 const data = await response.json();
-                
                 if (data && data[0]) {
                     let result = "";
-                    data[0].forEach(part => {
-                        if (part[0]) result += part[0];
-                    });
-                    return result.trim().replace(/\s+/g, " ");
+                    data[0].forEach(part => { if (part[0]) result += part[0]; });
+                    return result;
                 }
                 return text;
             } catch (error) {
@@ -392,6 +378,7 @@
             }
         }
 
+        // 한국어 받침 판정 (조사 교정용)
         function hasBatchim(word) {
             if (!word) return false;
             const lastChar = word.charCodeAt(word.length - 1);
@@ -399,6 +386,7 @@
             return (lastChar - 0xAC00) % 28 !== 0;
         }
 
+        // 이름 변환 후 조사가 깨지는 현상 교정 함수
         function fixKoreanJosa(text, name) {
             if (!name) return text;
             const batchim = hasBatchim(name);
@@ -419,6 +407,7 @@
             return fixed;
         }
 
+        // PDF 임의 줄바꿈 제거 최적화 함수
         function preprocessPDFText(text) {
             let rawLines = text.split('\n');
             const processedLines = [];
@@ -428,8 +417,8 @@
                 let current = line.trim();
                 if (!current) return;
 
-                const isSpecial = current.includes('키퍼') || current.includes('KP') || current.includes('kp') ||
-                                  current.includes('핸드아웃') || current.includes('비밀번호') || current.includes('Handout') || current.includes('http');
+                // 특수 키워드 보호 레이어 (줄바꿈 결합 제외)
+                const isSpecial = /키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(current);
 
                 if (isSpecial) {
                     if (buffer) {
@@ -441,11 +430,9 @@
                 }
 
                 if (buffer) {
-                    const lastChar = buffer.slice(-1);
-                    const isSentenceEnd = /[.!??”’)\]지역｣』。．]$/.test(lastChar);
-
-                    if (!isSentenceEnd) {
-                        buffer += " " + current;
+                    const isEnd = /[.!??”’)\]지역｣』。．]$/.test(buffer.slice(-1));
+                    if (!isEnd) {
+                        buffer += " " + current; // 문장 종결 기호가 아니면 이어 붙이기
                     } else {
                         processedLines.push(buffer.trim());
                         buffer = current;
@@ -455,18 +442,13 @@
                 }
             });
 
-            if (buffer) {
-                processedLines.push(buffer.trim());
-            }
-
+            if (buffer) processedLines.push(buffer.trim());
             return processedLines.join('\n');
         }
 
         document.getElementById('clearBtn').addEventListener('click', function() {
-            const textarea = document.getElementById('rawScript');
-            textarea.value = '';
+            document.getElementById('rawScript').value = '';
             document.getElementById('jpTranslateOpt').checked = false;
-            textarea.focus();
         });
 
         document.getElementById('submitBtn').addEventListener('click', async function() {
@@ -475,224 +457,180 @@
             const isJpMode = document.getElementById('jpTranslateOpt').checked;
             
             if (!rawScript.trim()) return;
+            container.innerHTML = '<div class="loading-text" id="loadingProgress">스크립트 변환 중...</div>';
 
-            container.innerHTML = '<div class="loading-text" id="loadingProgress">LOADING... (0%)</div>';
-
-            // [0단계] 이름 대치 및 조사 보정 엔진 선행 실행
-            let preNameReplacedText = rawScript;
+            // [1단계] 이름 대치 엔진 및 조사 교정 실행
+            let preProcessedText = rawScript;
             if (currentMode === 'tyeman') {
                 const kpcName = document.getElementById('kpcInput').value.trim();
                 const pcName = document.getElementById('pcInput').value.trim();
-                
-                if (kpcName) {
-                    preNameReplacedText = preNameReplacedText.split('KPC').join(kpcName);
-                    preNameReplacedText = fixKoreanJosa(preNameReplacedText, kpcName);
-                }
-                if (pcName) {
-                    preNameReplacedText = preNameReplacedText.split('탐사자').join(pcName);
-                    preNameReplacedText = preNameReplacedText.split('PC').join(pcName); 
-                    preNameReplacedText = fixKoreanJosa(preNameReplacedText, pcName);
-                }
+                if (kpcName) { preProcessedText = preProcessedText.split('KPC').join(kpcName); preProcessedText = fixKoreanJosa(preProcessedText, kpcName); }
+                if (pcName) { preProcessedText = preProcessedText.replace(/탐사자|PC/g, pcName); preProcessedText = fixKoreanJosa(preProcessedText, pcName); }
             } else {
-                const replaceTargets = [
+                const targets = [
                     { id: 'ch1Input', keywords: ['HO1', 'ho1', 'Ho1', '핸드아웃1', 'PC1', 'pc1', '탐사자1'] },
                     { id: 'ch2Input', keywords: ['HO2', 'ho2', 'Ho2', '핸드아웃2', 'PC2', 'pc2', '탐사자2'] },
                     { id: 'ch3Input', keywords: ['HO3', 'ho3', 'Ho3', '핸드아웃3', 'PC3', 'pc3', '탐사자3'] },
                     { id: 'ch4Input', keywords: ['HO4', 'ho4', 'Ho4', '핸드아웃4', 'PC4', 'pc4', '탐사자4'] }
                 ];
-
-                replaceTargets.forEach(target => {
-                    const customName = document.getElementById(target.id).value.trim();
-                    if (customName) {
-                        target.keywords.forEach(keyword => {
-                            preNameReplacedText = preNameReplacedText.split(keyword).join(customName);
-                        });
-                        preNameReplacedText = fixKoreanJosa(preNameReplacedText, customName);
-                    }
+                targets.forEach(t => {
+                    const name = document.getElementById(t.id).value.trim();
+                    if (name) { t.keywords.forEach(k => preProcessedText = preProcessedText.split(k).join(name)); preProcessedText = fixKoreanJosa(preProcessedText, name); }
                 });
             }
 
-            let restoredText = preprocessPDFText(preNameReplacedText);
+            // [2단계] PDF 최적화 전처리 엔진 통과
+            let restoredText = preprocessPDFText(preProcessedText);
             const intermediateLines = [];
-            const rawLines = restoredText.split('\n');
+            const restoredLines = restoredText.split('\n');
 
-            // 1단계: 마침표/쉼표 보호막 및 분할 토큰 스트림 엔진
-            rawLines.forEach(line => {
-                let trimmedLine = line.trim();
-                if (!trimmedLine) return;
+            // [3단계] 정밀 문장 기호 보호막 및 분할 토큰 스트림 엔진
+            restoredLines.forEach(line => {
+                let trimmed = line.trim();
+                if (!trimmed) return;
 
-                const isKpLine = trimmedLine.includes('키퍼 정보') || trimmedLine.includes('키퍼') || trimmedLine.includes('KP') || trimmedLine.includes('kp') || trimmedLine.includes('Kp');
-                const isHandoutLine = trimmedLine.includes('핸드아웃') || trimmedLine.includes('비밀번호') || trimmedLine.includes('Handout') || trimmedLine.includes('handout');
-                const isUrlLine = trimmedLine.includes('http://') || trimmedLine.includes('https://') || trimmedLine.toLowerCase().includes('bgm') || trimmedLine.includes('브금');
-
-                if (isKpLine || isHandoutLine || isUrlLine) {
-                    intermediateLines.push({ text: trimmedLine.replace(/\s+/g, " "), isSpecial: true });
+                if (/키퍼|KP|kp|핸드아웃|비밀번호|Handout|http/i.test(trimmed)) {
+                    intermediateLines.push({ text: trimmed.replace(/\s+/g, " "), isSpecial: true });
                 } else {
-                    trimmedLine = trimmedLine.replace(/\[\[\s*(\d+D\d+)\s*\]\]/gi, '[[ $1 ]]');
-
-                    // [추가 요구사항] 숫자+마침표 완전 보호 처리 (\u0004 기호로 일시 대피)
-                    let protectedText = trimmedLine.replace(/(\d+)\./g, '$1\u0004');
-
-                    const quotesAndBrackets = [];
-                    const quotePatterns = [
-                        /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g,
-                        /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g
-                    ];
-
-                    quotePatterns.forEach(pattern => {
+                    // 숫자 뒤 마침표(예: 1., 2.) 완벽 보호 조치 (\u0004 기호로 일시 우회)
+                    let protectedText = trimmed.replace(/(\d+)\./g, '$1\u0004');
+                    
+                    // 대화 내용 및 대괄호/괄호 안 쉼표 보호 처리
+                    const quotes = [];
+                    const patterns = [ /“[^”]*”/g, /"[^"\n]*"/g, /‘[^’]*’/g, /'[^'\n]*'/g, /\[\[[^\]]*\]\]/g, /\([^)]*\)/g, /\[[^\]]*\]/g, /「[^」]*」/g, /『[^』]*』/g ];
+                    patterns.forEach(pattern => {
                         protectedText = protectedText.replace(pattern, (match) => {
-                            const safeMatch = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
-                            const placeholder = `\u0002_${quotesAndBrackets.length}_\u0002`;
-                            quotesAndBrackets.push(safeMatch);
-                            return placeholder;
+                            const safe = match.replace(/,/g, '\u0001').replace(/、/g, '\u0003');
+                            quotes.push(safe);
+                            return `\u0002_${quotes.length - 1}_\u0002`;
                         });
                     });
 
-                    // 문장 종결자 기준 정밀 1차 분할
-                    let splitReadyText = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)/g, "$1\u0007");
-                    const sentences = splitReadyText.split('\u0007');
+                    // 온점/느낌표/물음표 문장 종결자 기준 1차 분산 분할
+                    let sentences = protectedText.replace(/([.!?。．]|\.{3,}|…|⋯+)/g, "$1\u0007").split('\u0007');
 
                     sentences.forEach(sentence => {
                         let currentSentence = sentence.trim();
                         if (!currentSentence) return;
 
-                        // [개선 완료] 토큰 스트림 기반 8글자 이하 쉼표 스킵 엔진
+                        // 토큰 스트림 기반 단문(8글자 이하) 쉼표 분리 스킵 처리
                         let tokens = currentSentence.split(/([,、])/);
                         let currentChunk = "";
+                        let segmentToCheck = "";
 
                         for (let t = 0; t < tokens.length; t++) {
                             let token = tokens[t];
                             if (token === ',' || token === '、') {
-                                // 임시 가상 글자 복원 후 순수 유효 글자수 계산
-                                let checkStr = currentChunk;
-                                for (let k = 0; k < quotesAndBrackets.length; k++) {
-                                    checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                }
+                                // 현재 진행 중인 쉼표 앞 구절의 가상 글자 복원 후 순수 글자 수 계산
+                                let checkStr = segmentToCheck;
+                                for (let k = 0; k < quotes.length; k++) checkStr = checkStr.split(`\u0002_${k}_\u0002`).join(quotes[k]);
                                 checkStr = checkStr.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').trim();
 
-                                // 순수 글자수가 8글자를 초과할 때만 분할 확정
+                                currentChunk += token;
+                                
+                                // 순수 단문 구절 글자 수가 8글자를 초과할 때만 안전 분리 확정
                                 if (checkStr.length > 8) {
-                                    currentChunk += token;
-                                    
                                     let finalChunk = currentChunk;
-                                    for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                        finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                                    }
-                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.');
-                                    finalChunk = finalChunk.replace(/\s+/g, " ").trim();
-
-                                    if (finalChunk) {
-                                        intermediateLines.push({ text: finalChunk, isSpecial: false });
-                                    }
-                                    currentChunk = ""; 
+                                    for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                                    finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\s+/g, " ").trim();
+                                    
+                                    if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
+                                    
+                                    currentChunk = "";
+                                    segmentToCheck = "";
                                 } else {
-                                    // 8글자 이하 단문 구절이면 분할하지 않고 그냥 이어 붙임
-                                    currentChunk += token;
+                                    // 8글자 이하 단문 구절이면 다음 구절과 병합, 단 순수 글자 수 계산 버퍼는 리셋
+                                    segmentToCheck = "";
                                 }
                             } else {
                                 currentChunk += token;
+                                segmentToCheck += token;
                             }
                         }
 
+                        // 스트림에 남아있는 최종 잔여 조각 마감 처리
                         if (currentChunk.trim()) {
                             let finalChunk = currentChunk;
-                            for (let k = quotesAndBrackets.length - 1; k >= 0; k--) {
-                                finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotesAndBrackets[k]);
-                            }
-                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.');
-                            finalChunk = finalChunk.replace(/\s+/g, " ").trim();
-
-                            if (finalChunk) {
-                                intermediateLines.push({ text: finalChunk, isSpecial: false });
-                            }
+                            for (let k = quotes.length - 1; k >= 0; k--) finalChunk = finalChunk.split(`\u0002_${k}_\u0002`).join(quotes[k]);
+                            finalChunk = finalChunk.replace(/\u0001/g, ',').replace(/\u0003/g, '、').replace(/\u0004/g, '.').replace(/\s+/g, " ").trim();
+                            if (finalChunk) intermediateLines.push({ text: finalChunk, isSpecial: false });
                         }
                     });
                 }
             });
 
-            // 2단계: 일본어 번역 누락 차단 비상제동(Fail-Safe) 레이어
+            // [4단계] 일본어 고정 번역 및 텍스트 누락 방지 안정 제동(Fail-Safe) 레이어
             if (isJpMode) {
                 const totalLines = intermediateLines.length;
                 const loadingTextEl = document.getElementById('loadingProgress');
                 
                 let currentChunkText = "";
                 let chunkIndices = [];
-                const SAFE_CHAR_LIMIT = 1500; 
+                const SAFE_LIMIT = 1200; 
+                const SEPARATOR = " ▣ "; // 매칭 데이터 유실 차단 목적용 번역 특수 구분자
 
                 for (let i = 0; i < totalLines; i++) {
                     const lineText = intermediateLines[i].text;
                     
-                    if ((currentChunkText.length + lineText.length > SAFE_CHAR_LIMIT && currentChunkText.length > 0) || i === totalLines - 1) {
+                    if ((currentChunkText.length + lineText.length > SAFE_LIMIT && currentChunkText.length > 0) || i === totalLines - 1) {
                         if (i === totalLines - 1) {
-                            currentChunkText += (currentChunkText ? "\n" : "") + lineText;
+                            currentChunkText += (currentChunkText ? SEPARATOR : "") + lineText;
                             chunkIndices.push(i);
                         }
 
-                        loadingTextEl.innerText = `TRANSLATING... (${i + 1} / ${totalLines})`;
+                        loadingTextEl.innerText = `번역 데이터 처리 중... (${i + 1} / ${totalLines})`;
 
-                        const translatedChunk = await translateLine(currentChunkText);
-                        const translatedSplit = translatedChunk.split('\n');
+                        const translatedChunk = await translateTextChunk(currentChunkText);
+                        const translatedSplit = translatedChunk.split(/▣/g).map(s => s.trim());
 
                         if (translatedSplit.length === chunkIndices.length) {
                             chunkIndices.forEach((origIdx, chunkSubIdx) => {
-                                if (translatedSplit[chunkSubIdx]) {
-                                    intermediateLines[origIdx].text = translatedSplit[chunkSubIdx].trim();
-                                }
+                                if (translatedSplit[chunkSubIdx]) intermediateLines[origIdx].text = translatedSplit[chunkSubIdx];
                             });
                         } else {
-                            // 문장 개수 어긋남 감지 시 한 줄씩 정밀 재번역 모드로 즉시 우회
+                            // 문장 개수가 다를 경우 개별 라인 정밀 재번역 레이어로 긴급 자동 우회
                             for (let cIdx of chunkIndices) {
-                                const singleRes = await translateLine(intermediateLines[cIdx].text);
-                                intermediateLines[cIdx].text = singleRes.trim();
-                                await sleep(100);
+                                intermediateLines[cIdx].text = await translateTextChunk(intermediateLines[cIdx].text);
+                                await sleep(50);
                             }
                         }
 
                         currentChunkText = "";
                         chunkIndices = [];
-                        await sleep(350); 
+                        await sleep(200); 
                     }
 
                     if (i < totalLines - 1) {
-                        currentChunkText += (currentChunkText ? "\n" : "") + lineText;
+                        currentChunkText += (currentChunkText ? SEPARATOR : "") + lineText;
                         chunkIndices.push(i);
                     }
                 }
             }
 
             // 후처리 공백 조사 흡수 
-            let finalProcessedText = intermediateLines.map(item => item.text).join('\n');
-            finalProcessedText = finalProcessedText.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+            intermediateLines.forEach(item => {
+                item.text = item.text.replace(/([가-힣])\s+(이|가|은|는|을|를|과|와|의|에|에서|고|라고|하며|했습니다|입니다|였다|였습니다)(\s|[,.!?\n]|$)/g, '$1$2$3');
+            });
 
-            // 3단계: UI 출력 블록 생성 및 하이라이트 스타일링
-            const absoluteFinalLines = finalProcessedText.split('\n');
+            // [5단계] UI 컴포넌트 렌더링 및 하이라이트 스타일 클래스 바인딩
             const fragment = document.createDocumentFragment();
-
-            absoluteFinalLines.forEach(lineText => {
-                let currentLineText = lineText.replace(/\s+/g, " ").trim();
-                if (!currentLineText) return;
+            intermediateLines.forEach(item => {
+                let lineText = item.text.replace(/\s+/g, " ").trim();
+                if (!lineText) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'notion-row';
 
                 const mainBlock = document.createElement('div');
                 mainBlock.className = 'notion-block';
-                mainBlock.innerText = currentLineText;
+                mainBlock.innerText = lineText;
 
-                const isUrl = currentLineText.includes('http://') || currentLineText.includes('https://') || currentLineText.toLowerCase().includes('bgm') || currentLineText.includes('브금');
-                const isKp = currentLineText.includes('키퍼 정보') || currentLineText.includes('키퍼') || currentLineText.includes('KP') || currentLineText.includes('kp') || currentLineText.includes('Kp');
-                const isHandout = currentLineText.includes('핸드아웃') || currentLineText.includes('비밀번호') || currentLineText.includes('Handout') || currentLineText.includes('handout');
-                const isCheckLine = currentLineText.includes('판정');
+                if (/키퍼|KP|kp/i.test(lineText)) mainBlock.classList.add('state-kp');
+                else if (lineText.includes('판정')) mainBlock.classList.add('state-check');
+                else if (/핸드아웃|비밀번호|Handout/i.test(lineText)) mainBlock.classList.add('state-handout');
+                else if (/http|bgm|브금/i.test(lineText)) mainBlock.classList.add('state-link');
 
-                if (isKp) mainBlock.classList.add('state-kp');
-                else if (isCheckLine) mainBlock.classList.add('state-check');
-                else if (isHandout) mainBlock.classList.add('state-handout');
-                else if (isUrl) mainBlock.classList.add('state-link');
-
-                mainBlock.onclick = function() {
-                    if (mainBlock.classList.contains('state-editing')) return;
-                    executeCopy(mainBlock.innerText, mainBlock);
-                };
+                mainBlock.onclick = function() { if (!mainBlock.classList.contains('state-editing')) executeCopy(mainBlock.innerText, mainBlock); };
 
                 const editBtn = document.createElement('button');
                 editBtn.className = 'row-control control-edit';
@@ -716,14 +654,10 @@
                 deleteBtn.innerText = '삭제';
                 deleteBtn.onclick = function() {
                     wrapper.remove();
-                    if (container.children.length === 0) {
-                        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
-                    }
+                    if (container.children.length === 0) container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">남은 문장이 없습니다.</div>';
                 };
 
-                wrapper.appendChild(mainBlock);
-                wrapper.appendChild(editBtn);
-                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(mainBlock); wrapper.appendChild(editBtn); wrapper.appendChild(deleteBtn);
                 fragment.appendChild(wrapper);
             });
 
@@ -734,49 +668,31 @@
         document.getElementById('copyAllBtn').addEventListener('click', function() {
             const lines = document.querySelectorAll('.notion-block');
             if (lines.length === 0) return;
-            const allTextArray = [];
-            lines.forEach(line => allTextArray.push(line.innerText));
-            const combinedText = allTextArray.join('\n');
+            const combinedText = Array.from(lines).map(line => line.innerText).join('\n');
             const btn = document.getElementById('copyAllBtn');
             executeCopy(combinedText, btn, "복사 완료!");
             setTimeout(() => { btn.innerText = "전체 복사"; }, 1000);
         });
 
-        function executeCopy(text, targetElement, successMessage = null) {
+        function executeCopy(text, targetElement, msg = null) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showSuccess(targetElement, successMessage);
-                }).catch(() => {
-                    fallbackCopy(text, targetElement, successMessage);
-                });
-            } else {
-                fallbackCopy(text, targetElement, successMessage);
-            }
+                navigator.clipboard.writeText(text).then(() => showSuccess(targetElement, msg)).catch(() => fallbackCopy(text, targetElement, msg));
+            } else fallbackCopy(text, targetElement, msg);
         }
 
-        function fallbackCopy(text, targetElement, successMessage) {
+        function fallbackCopy(text, targetElement, msg) {
             const hiddenArea = document.createElement('textarea');
             hiddenArea.value = text;
-            hiddenArea.style.position = 'fixed';
-            hiddenArea.style.top = '-9999px';
+            hiddenArea.style.position = 'fixed'; hiddenArea.style.top = '-9999px';
             document.body.appendChild(hiddenArea);
             hiddenArea.select();
-            try {
-                document.execCommand('copy');
-                showSuccess(targetElement, successMessage);
-            } catch (err) {
-                console.error('복사 실패');
-            }
+            try { document.execCommand('copy'); showSuccess(targetElement, msg); } catch (err) { console.error('복사 실패'); }
             document.body.removeChild(hiddenArea);
         }
 
         function showSuccess(el, msg) {
-            if(msg) {
-                el.innerText = msg;
-            } else {
-                el.classList.add('state-copied');
-                setTimeout(() => el.classList.remove('state-copied'), 400);
-            }
+            if(msg) el.innerText = msg;
+            else { el.classList.add('state-copied'); setTimeout(() => el.classList.remove('state-copied'), 400); }
         }
     </script>
 </body>
