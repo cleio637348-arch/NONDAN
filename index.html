@@ -1,163 +1,612 @@
-<html lang="ko" data-theme="dark">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>논단군 스크립트 정리</title>
-    <style>
-        /* 테마 변수 설계 */
-        :root[data-theme="dark"] {
-            --bg-main: #191919;
-            --bg-surface: #202020;
-            --bg-input: #252525;
-            --border-notion: rgba(255, 255, 255, 0.08);
-            --text-main: rgba(255, 255, 255, 0.88);
-            --text-muted: rgba(255, 255, 255, 0.45);
-            --bg-copied: rgba(46, 170, 220, 0.25);
-            --bg-badge: rgba(255, 255, 255, 0.05);
-            
-            /* 블록 컬러 스케일 */
-            --bg-kp: rgba(28, 131, 100, 0.18); --text-kp: #4ade80;
-            --bg-check: rgba(239, 68, 68, 0.18); --text-check: #f87171;
-            --bg-handout: rgba(234, 179, 8, 0.15); --text-handout: #fde047;
-            --bg-link: rgba(59, 130, 246, 0.18); --text-link: #60a5fa;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>힐 암호 해독 지령서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Nanum+Myeongjo:wght@400;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #f1e8cf;
+    --paper-card: #e9dfc0;
+    --paper-dark: #ddd0a6;
+    --ink: #2a241d;
+    --ink-soft: #55493a;
+    --ink-blue: #26364f;
+    --stamp-red: #9c3b3b;
+    --gold: #a9791f;
+    --grid-line: rgba(42,37,29,0.16);
+    --ok-green: #4b6b3f;
+  }
 
-        :root[data-theme="light"] {
-            --bg-main: #fbfbfa;
-            --bg-surface: #ffffff;
-            --bg-input: #f4f4f3;
-            --border-notion: rgba(55, 53, 47, 0.09);
-            --text-main: #37352f;
-            --text-muted: #787774;
-            --bg-copied: rgba(35, 131, 226, 0.15);
-            --bg-badge: rgba(55, 53, 47, 0.05);
-            
-            /* 블록 컬러 스케일 */
-            --bg-kp: #edf6ec; --text-kp: #1c7c45;
-            --bg-check: #fdebec; --text-check: #c33a3a;
-            --bg-handout: #fbf3db; --text-handout: #89632a;
-            --bg-link: #eef3fc; --text-link: #1d5ca9;
-        }
+  *{ box-sizing:border-box; }
 
-        body {
-            font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            max-width: 840px;
-            margin: 0 auto;
-            padding: 40px 18px;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            -webkit-font-smoothing: antialiased;
-            letter-spacing: -0.01em;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, rgba(42,37,29,0.04) 0px, rgba(42,37,29,0.04) 1px, transparent 1px, transparent 26px),
+      repeating-linear-gradient(90deg, rgba(42,37,29,0.03) 0px, rgba(42,37,29,0.03) 1px, transparent 1px, transparent 26px),
+      radial-gradient(ellipse at 20% 0%, #f6efdc 0%, var(--paper) 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family: 'Nanum Myeongjo', serif;
+    padding: 28px 14px 80px;
+  }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 32px;
-        }
+  .dossier{
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--paper-card);
+    border: 1px solid var(--grid-line);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 18px 40px -20px rgba(42,37,29,0.5);
+    position: relative;
+    padding: 46px 40px 50px;
+  }
 
-        header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin: 0 0 6px 0;
-            letter-spacing: -0.03em;
-        }
+  .dossier::before{
+    content:"";
+    position:absolute; inset:10px;
+    border: 1.5px dashed rgba(42,37,29,0.25);
+    pointer-events:none;
+  }
 
-        header p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0;
-        }
+  .case-header{ text-align:center; margin-bottom: 34px; position:relative; }
 
-        .theme-toggle-btn {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-notion);
-            color: var(--text-main);
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
+  .stamp{
+    position:absolute;
+    top: -18px; right: 6px;
+    font-family:'Special Elite', monospace;
+    color: var(--stamp-red);
+    border: 3px solid var(--stamp-red);
+    padding: 6px 14px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    transform: rotate(8deg);
+    opacity: 0.85;
+    border-radius: 3px;
+  }
 
-        .notion-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-notion);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-        }
+  .case-no{
+    font-family:'Courier Prime', monospace;
+    letter-spacing: 3px;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    margin: 0 0 8px;
+  }
 
-        .notion-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            margin-bottom: 14px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
+  h1{
+    font-family:'Nanum Myeongjo', serif;
+    font-weight: 800;
+    font-size: clamp(26px, 4vw, 36px);
+    margin: 0 0 10px;
+    letter-spacing: 1px;
+  }
 
-        .notion-tabs {
-            display: flex;
-            gap: 6px;
-            border-bottom: 1px solid var(--border-notion);
-            margin-bottom: 20px;
-            padding-bottom: 6px;
-        }
+  .subtitle{
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    margin: 0;
+  }
 
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 8px 14px;
-            font-size: 0.88rem;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.15s ease;
-        }
+  h2{
+    font-family:'Nanum Myeongjo', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 6px;
+  }
 
-        .tab-btn.active {
-            color: var(--text-main);
-            background: var(--bg-input);
-            font-weight: 600;
-        }
+  section{ margin-top: 34px; }
 
-        .name-panel { margin-bottom: 18px; }
-        .name-grid { display: grid; gap: 14px; }
-        .grid-tyeman { grid-template-columns: repeat(2, 1fr); }
-        .grid-multi { grid-template-columns: repeat(2, 1fr); }
-        
-        @media (max-width: 480px) {
-            .grid-tyeman { grid-template-columns: 1fr; }
-            .grid-multi { grid-template-columns: 1fr; }
-        }
-        @media (min-width: 768px) {
-            .grid-multi { grid-template-columns: repeat(4, 1fr); }
-        }
+  .brief p{ line-height:1.85; font-size:14.5px; color:var(--ink); }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+  .textbook-note{
+    background: rgba(169,121,31,0.09);
+    border-left: 3px solid var(--gold);
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    line-height:1.7;
+  }
+  .textbook-note b{ color: var(--ink); }
 
-        .input-group span {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
+  .control-panel{
+    background: var(--paper-dark);
+    border: 1px solid var(--grid-line);
+    padding: 22px 22px 24px;
+  }
 
-        .hidden { display: none !important; }
+  .field-group{ margin-bottom: 18px; }
+  .field-group:last-child{ margin-bottom:0; }
 
-        input[type="text"], textarea {
-            width: 100%;
-            background-color: var(--bg-input);
+  label{
+    display:block;
+    font-family:'Courier Prime', monospace;
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], input[type="number"]{
+    font-family:'Courier Prime', monospace;
+    font-size: 15px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    padding: 9px 10px;
+    color: var(--ink);
+    width: 100%;
+  }
+  input:focus{ outline: 2px solid var(--gold); outline-offset: 1px; }
+
+  .text-row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .text-row .field-group{ flex:1 1 240px; }
+
+  .matrix-input-grid{
+    display:grid;
+    grid-template-columns: 54px 54px;
+    gap: 6px;
+    width: fit-content;
+  }
+  .matrix-input-grid input{ text-align:center; padding:9px 4px; }
+
+  .key-row{ display:flex; align-items:flex-start; gap:24px; flex-wrap:wrap; }
+
+  .det-info{
+    font-family:'Courier Prime', monospace;
+    font-size: 12.5px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border: 1px dashed var(--grid-line);
+    max-width: 260px;
+  }
+  .det-info.ok{ color: var(--ok-green); }
+  .det-info.bad{ color: var(--stamp-red); }
+
+  .buttons{ display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; }
+
+  button{
+    font-family:'Special Elite', monospace;
+    font-size: 13.5px;
+    letter-spacing: 1px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  button:hover{ background: var(--ink-blue); transform: translateY(-1px); }
+  button:active{ transform: translateY(0); }
+  button.secondary{ background: var(--stamp-red); }
+  button.secondary:hover{ background: #7d2f2f; }
+
+  #steps-output, #period-output{ margin-top: 24px; display:flex; flex-direction:column; gap:14px; }
+
+  .error-msg{
+    color: var(--stamp-red);
+    font-family:'Courier Prime', monospace;
+    font-size: 13.5px;
+    border: 1px solid var(--stamp-red);
+    padding: 10px 12px;
+    background: rgba(156,59,59,0.06);
+  }
+
+  .final-banner{
+    font-family:'Courier Prime', monospace;
+    font-size: 14px;
+    border: 2px solid var(--ink);
+    padding: 14px 16px;
+    background: var(--paper);
+    display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .final-banner .label{ color:var(--ink-soft); letter-spacing:1px; font-size:12px; }
+  .final-banner .value{ font-size:20px; letter-spacing:3px; color:var(--ink-blue); font-weight:700; }
+
+  .pair-card{
+    background: var(--paper);
+    border: 1px solid var(--grid-line);
+    padding: 14px 16px;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: reveal 0.45s ease forwards;
+    font-family: 'Courier Prime', monospace;
+  }
+  @keyframes reveal{ to{ opacity:1; transform:translateY(0); } }
+
+  .pair-card .pair-title{
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .pair-title .letters{ color:var(--ink); font-weight:700; }
+
+  .calc-row{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    font-size: 14px;
+  }
+
+  .matrix-box{
+    display:grid;
+    grid-template-columns: repeat(2, 30px);
+    grid-template-rows: repeat(2, 30px);
+    border-left: 2px solid var(--ink);
+    border-right: 2px solid var(--ink);
+    gap: 2px;
+    padding: 2px 6px;
+  }
+  .matrix-box.vec{ grid-template-columns: 30px; }
+  .matrix-box div{ display:flex; align-items:center; justify-content:center; font-size:14px; }
+
+  .op-sym{ font-size:18px; color:var(--ink-soft); }
+
+  .arrow{ color: var(--gold); font-size:16px; }
+
+  .steps-detail{
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    line-height: 1.8;
+    border-top: 1px dashed var(--grid-line);
+    padding-top: 10px;
+  }
+  .steps-detail .mod{ color: var(--stamp-red); }
+
+  .result-chip{
+    display:inline-block;
+    font-family:'Special Elite', monospace;
+    background: var(--gold);
+    color: var(--paper);
+    padding: 3px 10px;
+    margin-left: 6px;
+    letter-spacing: 1px;
+  }
+
+  .period-seq{
+    font-family:'Courier Prime', monospace;
+    font-size: 13px;
+    line-height: 2;
+    background: var(--paper);
+    border: 1px solid var(--grid-line);
+    padding: 12px 14px;
+  }
+  .period-seq b{ color: var(--ink-blue); }
+
+  footer{
+    text-align:center;
+    margin-top: 40px;
+    font-family:'Courier Prime', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .pair-card{ animation: none; opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dossier">
+
+  <div class="case-header">
+    <div class="stamp">TOP SECRET</div>
+    <p class="case-no">CASE FILE No. Ⅳ-행렬-1929</p>
+    <h1>힐 암호(Hill Cipher) 해독 지령서</h1>
+    <p class="subtitle">행렬의 곱셈으로 문서를 암호화·복호화하는 과정을 단계별로 추적한다</p>
+  </div>
+
+  <section class="brief">
+    <h2>■ 임무 개요</h2>
+    <p>
+      1929년, 수학자 레스터 힐(Lester Hill)은 문자를 숫자로 바꾸고 그 숫자에 행렬을 곱하여
+      암호문을 만드는 방법을 고안했다. 알파벳 두 글자를 하나의 벡터로 묶고, 미리 정한
+      2×2 <b>키 행렬 K</b>를 곱하면 암호문이 되고, K의 <b>역행렬</b>을 곱하면 다시 평문으로 돌아온다.
+      아래에서 직접 문장을 암호화·복호화하며 그 과정을 확인해 보자.
+    </p>
+    <div class="textbook-note">
+      <b>교과서 연계</b> — 공통수학1 «Ⅳ. 행렬» 단원의 행렬의 곱셈, 항등행렬(E) 개념이
+      암호화·복호화의 뼈대를 이룬다. 다만 문자를 26개(A~Z)로 다루기 위해 모든 계산을 26으로
+      나눈 나머지(mod 26)로 처리하고, 곱셈의 역연산을 위해 <b>역행렬</b> 개념을 확장해서 사용한다 —
+      이는 교과서 범위를 넘어서는 심화 개념이다.
+    </div>
+  </section>
+
+  <section>
+    <h2>■ 지령 입력</h2>
+    <div class="control-panel">
+      <div class="text-row">
+        <div class="field-group">
+          <label>평문 PLAINTEXT (영문자만, 최대 20자)</label>
+          <input type="text" id="plaintext" maxlength="20" placeholder="예: HELLO">
+        </div>
+        <div class="field-group">
+          <label>암호문 CIPHERTEXT (복호화용, 직접 입력 가능)</label>
+          <input type="text" id="ciphertext" maxlength="20" placeholder="암호화 실행 시 자동 입력됨">
+        </div>
+      </div>
+
+      <div class="key-row">
+        <div class="field-group">
+          <label>키 행렬 K (정수, 2×2)</label>
+          <div class="matrix-input-grid">
+            <input type="number" id="k-a" value="3">
+            <input type="number" id="k-b" value="3">
+            <input type="number" id="k-c" value="2">
+            <input type="number" id="k-d" value="5">
+          </div>
+        </div>
+        <div id="det-info" class="det-info"></div>
+      </div>
+
+      <div class="buttons">
+        <button id="encrypt-btn">암호화 실행 →</button>
+        <button id="decrypt-btn" class="secondary">← 복호화 실행</button>
+      </div>
+    </div>
+
+    <div id="steps-output"></div>
+  </section>
+
+  <section class="periodicity">
+    <h2>■ 심화 임무 — 반복 암호화와 주기</h2>
+    <p style="font-size:14px; line-height:1.8; color:var(--ink-soft);">
+      같은 키 행렬 K를 벡터에 계속 곱하면 어떻게 될까? 회전행렬이 반복하면 원래 방향으로 되돌아오듯,
+      어떤 키 행렬은 반복해서 곱하면 원래의 숫자쌍으로 되돌아오는 <b style="color:var(--ink)">주기</b>를 가진다.
+      주기가 짧을수록 같은 키로 반복 암호화했을 때 더 빨리 패턴이 드러나므로, 암호학적으로는 더 취약한 키가 된다.
+    </p>
+    <div class="control-panel" style="margin-top:16px;">
+      <div class="text-row">
+        <div class="field-group">
+          <label>시작 벡터 성분 1 (0~25)</label>
+          <input type="number" id="p-v1" value="7" min="0" max="25">
+        </div>
+        <div class="field-group">
+          <label>시작 벡터 성분 2 (0~25)</label>
+          <input type="number" id="p-v2" value="8" min="0" max="25">
+        </div>
+      </div>
+      <div class="buttons">
+        <button id="period-btn">주기 계산 실행</button>
+      </div>
+    </div>
+    <div id="period-output"></div>
+  </section>
+
+  <footer>DECRYPTED BY 공통수학1 Ⅳ.행렬 · CASE CLOSED</footer>
+</div>
+
+<script>
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function mod(n, m){ return ((n % m) + m) % m; }
+
+function det(K){
+  const [a,b,c,d] = K;
+  return mod(a*d - b*c, 26);
+}
+
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b, a%b]; } return a; }
+
+function modInverse(a, m){
+  a = mod(a, m);
+  if (gcd(a, m) !== 1) return null;
+  for (let x = 1; x < m; x++){
+    if (mod(a * x, m) === 1) return x;
+  }
+  return null;
+}
+
+function inverseKey(K){
+  const [a,b,c,d] = K;
+  const detK = det(K);
+  const invDet = modInverse(detK, 26);
+  if (invDet === null) return null;
+  const ia = mod(invDet * d, 26);
+  const ib = mod(invDet * (-b), 26);
+  const ic = mod(invDet * (-c), 26);
+  const id = mod(invDet * a, 26);
+  return [ia, ib, ic, id];
+}
+
+function readKey(){
+  return [
+    parseInt(document.getElementById('k-a').value) || 0,
+    parseInt(document.getElementById('k-b').value) || 0,
+    parseInt(document.getElementById('k-c').value) || 0,
+    parseInt(document.getElementById('k-d').value) || 0
+  ];
+}
+
+function updateDetInfo(){
+  const K = readKey();
+  const d = det(K);
+  const g = gcd(d, 26);
+  const el = document.getElementById('det-info');
+  if (g === 1){
+    const inv = modInverse(d, 26);
+    el.className = 'det-info ok';
+    el.innerHTML = `det(K) mod 26 = ${d}<br>gcd(${d}, 26) = 1 → 역행렬 존재 (역원 = ${inv})`;
+  } else {
+    el.className = 'det-info bad';
+    el.innerHTML = `det(K) mod 26 = ${d}<br>gcd(${d}, 26) = ${g} ≠ 1 → 이 키는 복호화 불가! 값을 바꿔보자.`;
+  }
+}
+
+['k-a','k-b','k-c','k-d'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateDetInfo);
+});
+updateDetInfo();
+
+function textToPairs(text){
+  let letters = text.toUpperCase().replace(/[^A-Z]/g, '');
+  if (letters.length === 0) return null;
+  if (letters.length % 2 !== 0) letters += 'X';
+  const pairs = [];
+  for (let i = 0; i < letters.length; i += 2){
+    pairs.push([ALPHA.indexOf(letters[i]), ALPHA.indexOf(letters[i+1])]);
+  }
+  return { letters, pairs };
+}
+
+function pairToLetters(pair){
+  return ALPHA[pair[0]] + ALPHA[pair[1]];
+}
+
+function multiplyPair(K, pair){
+  const [a,b,c,d] = K;
+  const [p1,p2] = pair;
+  const r1 = mod(a*p1 + b*p2, 26);
+  const r2 = mod(c*p1 + d*p2, 26);
+  return [r1, r2];
+}
+
+function matrixHTML(K){
+  return `<div class="matrix-box">
+    <div>${K[0]}</div><div>${K[1]}</div>
+    <div>${K[2]}</div><div>${K[3]}</div>
+  </div>`;
+}
+
+function vecHTML(v){
+  return `<div class="matrix-box vec">
+    <div>${v[0]}</div>
+    <div>${v[1]}</div>
+  </div>`;
+}
+
+function renderPairCard(index, inLetters, inPair, K, outPair, outLetters, delay, mode){
+  const [a,b,c,d] = K;
+  const [p1,p2] = inPair;
+  const arrowLabel = mode === 'encrypt' ? '암호화' : '복호화';
+  return `
+  <div class="pair-card" style="animation-delay:${delay}s">
+    <div class="pair-title">BLOCK ${index+1} · <span class="letters">${inLetters}</span> → ${arrowLabel} 진행중</div>
+    <div class="calc-row">
+      ${matrixHTML(K)}
+      <span class="op-sym">×</span>
+      ${vecHTML(inPair)}
+      <span class="op-sym">=</span>
+      ${vecHTML(outPair)}
+      <span class="arrow">⇒</span>
+      <span class="result-chip">${outLetters}</span>
+    </div>
+    <div class="steps-detail">
+      1행: ${a}×${p1} + ${b}×${p2} = ${a*p1 + b*p2} <span class="mod">mod 26</span> = ${outPair[0]}<br>
+      2행: ${c}×${p1} + ${d}×${p2} = ${c*p1 + d*p2} <span class="mod">mod 26</span> = ${outPair[1]}
+    </div>
+  </div>`;
+}
+
+function runCipher(mode){
+  const output = document.getElementById('steps-output');
+  output.innerHTML = '';
+  const K = readKey();
+  const d = det(K);
+
+  let effectiveKey = K;
+  let sourceId = 'plaintext';
+
+  if (mode === 'decrypt'){
+    const inv = inverseKey(K);
+    if (inv === null){
+      output.innerHTML = `<div class="error-msg">복호화 불가: det(K) mod 26 = ${d} 가 26과 서로소가 아니므로 K의 역행렬이 존재하지 않는다. 키 행렬 값을 바꿔보자.</div>`;
+      return;
+    }
+    effectiveKey = inv;
+    sourceId = 'ciphertext';
+
+    const invBanner = document.createElement('div');
+    invBanner.className = 'pair-card';
+    invBanner.style.animationDelay = '0s';
+    invBanner.innerHTML = `
+      <div class="pair-title">역행렬 K⁻¹ 계산</div>
+      <div class="calc-row">
+        det(K) = ${d} &nbsp;|&nbsp; det(K)⁻¹ mod 26 = ${modInverse(d,26)}
+        <span class="arrow">⇒</span>
+        K⁻¹ = ${matrixHTML(inv)}
+      </div>`;
+    output.appendChild(invBanner);
+  }
+
+  const raw = document.getElementById(sourceId).value;
+  const parsed = textToPairs(raw);
+  if (!parsed){
+    output.innerHTML += `<div class="error-msg">${mode === 'encrypt' ? '평문' : '암호문'}을 영문자로 입력하자.</div>`;
+    return;
+  }
+
+  let resultLetters = '';
+  parsed.pairs.forEach((pair, i) => {
+    const inLetters = pairToLetters(pair);
+    const outPair = multiplyPair(effectiveKey, pair);
+    const outLetters = pairToLetters(outPair);
+    resultLetters += outLetters;
+    const delay = (mode === 'decrypt' ? 0.15 : 0) + i * 0.18;
+    output.innerHTML += renderPairCard(i, inLetters, pair, effectiveKey, outPair, outLetters, delay, mode);
+  });
+
+  const banner = document.createElement('div');
+  banner.className = 'final-banner';
+  banner.innerHTML = `
+    <span class="label">${mode === 'encrypt' ? 'CIPHERTEXT 완성' : 'PLAINTEXT 복원'}</span>
+    <span class="value">${resultLetters}</span>`;
+  output.appendChild(banner);
+
+  if (mode === 'encrypt'){
+    document.getElementById('ciphertext').value = resultLetters;
+  }
+}
+
+document.getElementById('encrypt-btn').addEventListener('click', () => runCipher('encrypt'));
+document.getElementById('decrypt-btn').addEventListener('click', () => runCipher('decrypt'));
+
+function runPeriod(){
+  const K = readKey();
+  const v0 = [
+    mod(parseInt(document.getElementById('p-v1').value) || 0, 26),
+    mod(parseInt(document.getElementById('p-v2').value) || 0, 26)
+  ];
+  const out = document.getElementById('period-output');
+  let v = v0;
+  let seq = [v0];
+  let n = 0;
+  const MAX = 1000;
+  do {
+    v = multiplyPair(K, v);
+    seq.push(v);
+    n++;
+  } while (!(v[0]===v0[0] && v[1]===v0[1]) && n < MAX);
+
+  if (n >= MAX && !(v[0]===v0[0] && v[1]===v0[1])){
+    out.innerHTML = `<div class="error-msg">${MAX}번을 곱해도 원래 벡터로 돌아오지 않았다. 이 키는 이 시작 벡터에 대해 (탐색 범위 내에서) 뚜렷한 주기가 없다.</div>`;
+    return;
+  }
+
+  const shown = seq.slice(0, Math.min(seq.length, 13))
+    .map((p,i) => `<b>${i}</b>: (${p[0]}, ${p[1]}) [${pairToLetters(p)}]`)
+    .join(' &nbsp;→&nbsp; ');
+
+  out.innerHTML = `
+    <div class="period-seq">
+      시작 벡터 (${v0[0]}, ${v0[1]}) [${pairToLetters(v0)}] 에 K를 계속 곱한 결과<br><br>
+      ${shown}${seq.length > 13 ? ' &nbsp;→&nbsp; …' : ''}
+      <br><br>
+      <b>${n}</b>번 만에 원래 벡터로 되돌아왔다. → 이 키 행렬(이 벡터 기준)의 주기는 <b>${n}</b>이다.
+      ${n <= 3 ? '<br><span style="color:var(--stamp-red)">주기가 매우 짧다 — 반복 암호화 시 빠르게 패턴이 드러나는 취약한 키다.</span>' : ''}
+    </div>`;
+}
+
+document.getElementById('period-btn').addEventListener('click', runPeriod);
+</script>
+
+</body>
+</html>
             border: 1px solid var(--border-notion);
             border-radius: 5px;
             color: var(--text-main);
